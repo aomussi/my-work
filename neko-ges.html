@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ネコ呼び出しジェスチャーゲーム</title>
+    <style>
+        body {
+            font-family: "Rounded Mplus 1c", "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f8fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #66a6ff 0%, #89f7fe 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            position: relative;
+        }
+        
+        .header-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .header-shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            background-color: white;
+        }
+        
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .game-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        /* カメラビデオは非表示にする */
+        #webcam {
+            display: none;
+        }
+        
+        /* シーンコンテナのサイズと位置を調整 */
+        .scene-container {
+            position: relative;
+            width: 640px;
+            height: 360px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            margin-top: 20px;
+            background: linear-gradient(to bottom, #87CEEB, #e0f7fa 60%, #81C784 100%);
+            transition: background 1s ease;
+        }
+        
+        /* キャンバスを猫のシーンに重ねる */
+        #output-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+            z-index: 20; /* 猫よりも上に表示 */
+            pointer-events: none; /* クリックイベントを通過させる */
+        }
+        
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30%;
+            background: linear-gradient(to bottom, #81C784, #558B2F);
+            z-index: 1;
+        }
+        
+        .cloud {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            z-index: 2;
+            opacity: 0.9;
+            filter: blur(3px);
+            animation: cloud-drift linear infinite;
+        }
+        
+        @keyframes cloud-drift {
+            0% { transform: translateX(700px); }
+            100% { transform: translateX(-200px); }
+        }
+        
+        .sun {
+            position: absolute;
+            top: 50px;
+            right: 80px;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #FFD54F, #FF9800);
+            border-radius: 50%;
+            box-shadow: 0 0 40px #FFD54F;
+            z-index: 1;
+            animation: sun-pulse 5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes sun-pulse {
+            0% { transform: scale(1); opacity: 0.9; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+        
+        /* ジェスチャーカードを猫のシーンの下に配置 */
+        .gesture-cards {
+            display: flex;
+            justify-content: space-between;
+            width: 640px;
+            margin-top: 20px;
+        }
+        
+        .gesture-card {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            flex: 1;
+            margin: 0 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            max-width: 180px;
+            background-color: #f9f9f9;
+        }
+        
+        .gesture-card.active {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .gesture-card.rock.active {
+            background-color: #FFECB3;
+            border: 2px solid #FFC107;
+        }
+        
+        .gesture-card.paper.active {
+            background-color: #E1F5FE;
+            border: 2px solid #03A9F4;
+        }
+        
+        .gesture-card.scissors.active {
+            background-color: #F8BBD0;
+            border: 2px solid #E91E63;
+        }
+        
+        .gesture-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .gesture-label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .gesture-status {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .control-panel {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            width: 640px;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #start-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #start-btn:hover:not(:disabled) {
+            background-color: #388E3C;
+            transform: translateY(-2px);
+        }
+        
+        #stop-btn {
+            background-color: #F44336;
+            color: white;
+        }
+        
+        #stop-btn:hover:not(:disabled) {
+            background-color: #D32F2F;
+            transform: translateY(-2px);
+        }
+        
+        .instructions {
+            background-color: #E8F5E9;
+            border-left: 5px solid #4CAF50;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            max-width: 640px;
+            line-height: 1.6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #2E7D32;
+        }
+        
+        .instructions p {
+            margin: 8px 0;
+        }
+        
+        .cat {
+            position: absolute;
+            bottom: 108px; /* 地面の上 */
+            z-index: 10;
+            transform-origin: bottom center;
+            transition: transform 0.3s ease;
+        }
+        
+        .footprint {
+            position: absolute;
+            bottom: 108px;
+            z-index: 5;
+            opacity: 0.3;
+        }
+        
+        .effect-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.5;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .loading-progress {
+            width: 300px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .loading-progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        @keyframes cat-entrance {
+            0% { transform: translateX(-100px) scale(0.8); opacity: 0; }
+            60% { transform: translateX(20px) scale(1.05); opacity: 1; }
+            80% { transform: translateX(-10px) scale(0.95); }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+        }
+        
+        @keyframes cat-exit {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            20% { transform: translateX(10px) scale(0.95); opacity: 1; }
+            100% { transform: translateX(-150px) scale(0.8); opacity: 0; }
+        }
+        
+        @keyframes cat-idle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes sparkle {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        
+        .tree {
+            position: absolute;
+            bottom: 108px;
+            z-index: 3;
+        }
+        
+        .bush {
+            position: absolute;
+            bottom: 108px;
+            z-index: 3;
+        }
+
+        .debug-panel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 200px;
+            z-index: 100;
+        }
+        
+        .hand-guidance {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            text-align: center;
+            z-index: 25;
+            pointer-events: none;
+            opacity: 0.7;
+            transition: opacity 0.5s ease;
+        }
+        
+        /* レスポンシブ設定 */
+        @media (max-width: 700px) {
+            .scene-container, .control-panel, .gesture-cards {
+                width: 95%;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .gesture-cards {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .gesture-card {
+                width: 80%;
+                max-width: none;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-shapes">
+            <div class="header-shape" style="width: 100px; height: 100px; top: -30px; left: 10%;"></div>
+            <div class="header-shape" style="width: 150px; height: 150px; bottom: -50px; right: 15%;"></div>
+            <div class="header-shape" style="width: 60px; height: 60px; top: 20%; left: 25%;"></div>
+            <div class="header-shape" style="width: 80px; height: 80px; bottom: 10%; right: 30%;"></div>
+        </div>
+        <h1>ネコ呼び出しジェスチャーゲーム</h1>
+    </div>
+
+    <div class="main-container">
+        <div class="instructions">
+            <h3>遊び方</h3>
+            <p>「開始」ボタンをクリックして、カメラを起動しましょう。</p>
+            <p>手を画面中央に向けて、<strong>グー</strong>、<strong>パー</strong>、<strong>チョキ</strong>のジェスチャーを試してみてください。</p>
+            <p>それぞれのジェスチャーで違う種類のネコが現れます！</p>
+            <p><strong>グー</strong>→力強いトラネコ　<strong>パー</strong>→優雅な白猫　<strong>チョキ</strong>→元気な三毛猫</p>
+        </div>
+
+        <div class="game-container">
+            <!-- カメラビデオは非表示だが処理のために必要 -->
+            <video id="webcam" autoplay playsinline></video>
+            
+            <!-- 猫が表示されるシーン。ここにハンドスケルトンも表示 -->
+            <div class="scene-container" id="scene-container">
+                <div class="sun"></div>
+                <!-- 雲はJSで動的に追加 -->
+                <div class="ground"></div>
+                <!-- 木や茂みはJSで動的に追加 -->
+                <!-- ネコはJSで動的に追加 -->
+                <!-- キャンバスをシーンコンテナ内に配置 -->
+                <canvas id="output-canvas"></canvas>
+                <div class="debug-panel" id="debug-panel"></div>
+                <div class="hand-guidance" id="hand-guidance">手を画面中央に向けてジェスチャーを行ってください</div>
+            </div>
+            
+            <!-- ジェスチャーカードをシーンの下に配置 -->
+            <div class="gesture-cards">
+                <div class="gesture-card rock" id="rock-card">
+                    <span class="gesture-icon">✊</span>
+                    <span class="gesture-label">グー</span>
+                    <span class="gesture-status">未検出</span>
+                </div>
+                <div class="gesture-card paper" id="paper-card">
+                    <span class="gesture-icon">✋</span>
+                    <span class="gesture-label">パー</span>
+                    <span class="gesture-status">未検出</span>
+                </div>
+                <div class="gesture-card scissors" id="scissors-card">
+                    <span class="gesture-icon">✌️</span>
+                    <span class="gesture-label">チョキ</span>
+                    <span class="gesture-status">未検出</span>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <div class="buttons-container">
+                    <button id="start-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                        開始
+                    </button>
+                    <button id="stop-btn" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                        停止
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">ハンドジェスチャー認識モデルを読み込み中...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loading-progress-bar" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <!-- TensorFlow.js と MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js"></script>
+
+    <script>
+        // グローバル変数
+        let isRunning = false;
+        let hands, camera;
+        let gestures = { rock: false, paper: false, scissors: false };
+        let lastGestures = { rock: false, paper: false, scissors: false };
+        let gestureStability = { rock: 0, paper: 0, scissors: 0 };
+        const STABILITY_THRESHOLD = 3; // この回数連続で検出されたらジェスチャー確定
+        let handGuidanceTimeout;
+        
+        // 猫のデータ
+        const cats = {
+            rock: {
+                type: 'tiger',
+                color: '#E8A55F',
+                accentColor: '#b06000',
+                animation: 'bold',
+                sounds: ['meow1.mp3', 'purr.mp3'],
+                footprintColor: '#b06000',
+                effectColor: '#FFB74D',
+                sceneTint: 'rgba(255, 152, 0, 0.1)',
+                personality: '力強い',
+                footprintSpacing: 50
+            },
+            paper: {
+                type: 'white',
+                color: '#f5f5f5',
+                accentColor: '#c0c0c0',
+                animation: 'elegant',
+                sounds: ['meow2.mp3', 'purr.mp3'],
+                footprintColor: '#c0c0c0',
+                effectColor: '#90CAF9',
+                sceneTint: 'rgba(3, 169, 244, 0.1)',
+                personality: '優雅な',
+                footprintSpacing: 70
+            },
+            scissors: {
+                type: 'calico',
+                color: '#E0B587',
+                accentColor: '#7C5E48',
+                animation: 'playful',
+                sounds: ['meow3.mp3', 'purr.mp3'],
+                footprintColor: '#7C5E48',
+                effectColor: '#F48FB1',
+                sceneTint: 'rgba(233, 30, 99, 0.1)',
+                personality: '元気な',
+                footprintSpacing: 30
+            }
+        };
+        
+        // 現在シーンに存在するネコ
+        let activeCats = {
+            rock: { element: null, active: false, position: 0, animation: null },
+            paper: { element: null, active: false, position: 0, animation: null },
+            scissors: { element: null, active: false, position: 0, animation: null }
+        };
+        
+        // DOM要素
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('output-canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const sceneContainer = document.getElementById('scene-container');
+        const rockCard = document.getElementById('rock-card');
+        const paperCard = document.getElementById('paper-card');
+        const scissorsCard = document.getElementById('scissors-card');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingProgressBar = document.getElementById('loading-progress-bar');
+        const debugPanel = document.getElementById('debug-panel');
+        const handGuidance = document.getElementById('hand-guidance');
+        
+        // キャンバスサイズの設定
+        function updateCanvasSize() {
+            canvasElement.width = sceneContainer.clientWidth;
+            canvasElement.height = sceneContainer.clientHeight;
+        }
+        
+        // 環境の初期化
+        function initializeEnvironment() {
+            // 雲を追加
+            for (let i = 0; i < 6; i++) {
+                createCloud();
+            }
+            
+            // 木や茂みを追加
+            createTrees();
+            createBushes();
+        }
+        
+        // 雲を作成
+        function createCloud() {
+            const cloud = document.createElement('div');
+            cloud.className = 'cloud';
+            
+            // ランダムなサイズと位置
+            const size = 30 + Math.random() * 120;
+            const top = Math.random() * 100;
+            const delay = Math.random() * 30;
+            const duration = 60 + Math.random() * 60;
+            
+            cloud.style.width = `${size}px`;
+            cloud.style.height = `${size * 0.6}px`;
+            cloud.style.top = `${top}px`;
+            cloud.style.right = `${-size}px`;
+            cloud.style.animationDuration = `${duration}s`;
+            cloud.style.animationDelay = `${-delay}s`;
+            
+            sceneContainer.appendChild(cloud);
+            
+            // 雲が画面外に出たら再配置
+            setTimeout(() => {
+                cloud.remove();
+                createCloud();
+            }, (duration + delay) * 1000);
+        }
+        
+        // 木を作成
+        function createTrees() {
+            const positions = [50, 560];
+            
+            positions.forEach(xPos => {
+                const tree = document.createElement('div');
+                tree.className = 'tree';
+                tree.style.left = `${xPos}px`;
+                
+                // SVG で木を描画
+                tree.innerHTML = `
+                    <svg width="80" height="150" viewBox="0 0 80 150" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="35" y="70" width="10" height="80" fill="#795548" />
+                        <ellipse cx="40" cy="70" rx="30" ry="40" fill="#388E3C" />
+                        <ellipse cx="40" cy="40" rx="25" ry="30" fill="#43A047" />
+                        <ellipse cx="40" cy="20" rx="20" ry="20" fill="#4CAF50" />
+                    </svg>
+                `;
+                
+                sceneContainer.appendChild(tree);
+            });
+        }
+        
+        // 茂みを作成
+        function createBushes() {
+            const positions = [150, 300, 450];
+            
+            positions.forEach(xPos => {
+                const bush = document.createElement('div');
+                bush.className = 'bush';
+                bush.style.left = `${xPos}px`;
+                
+                // SVG で茂みを描画
+                bush.innerHTML = `
+                    <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="30" cy="25" rx="30" ry="15" fill="#388E3C" />
+                        <ellipse cx="20" cy="20" rx="15" ry="20" fill="#43A047" />
+                        <ellipse cx="40" cy="18" rx="15" ry="18" fill="#4CAF50" />
+                    </svg>
+                `;
+                
+                sceneContainer.appendChild(bush);
+            });
+        }
+        
+        // MediaPipe Hands の初期化
+        async function initHandTracking() {
+            updateLoadingProgress(10);
+            
+            try {
+                hands = new Hands({
+                    locateFile: (file) => {
+                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                    }
+                });
+                
+                updateLoadingProgress(30);
+                
+                hands.setOptions({
+                    maxNumHands: 2,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+                
+                updateLoadingProgress(50);
+                
+                hands.onResults(onResults);
+                
+                updateLoadingProgress(70);
+                
+                // カメラの初期化
+                camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        if (isRunning) {
+                            await hands.send({image: videoElement});
+                        }
+                    },
+                    width: 640,
+                    height: 480
+                });
+                
+                updateLoadingProgress(90);
+                
+                // 初期化完了
+                updateLoadingProgress(100);
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 500);
+                
+                return true;
+            } catch (error) {
+                console.error('ハンドトラッキングの初期化エラー:', error);
+                alert('ハンドトラッキングモデルの初期化に失敗しました。ページを再読み込みしてください。');
+                loadingOverlay.style.display = 'none';
+                return false;
+            }
+        }
+        
+        // ローディングの進捗を更新
+        function updateLoadingProgress(percentage) {
+            loadingProgressBar.style.width = `${percentage}%`;
+        }
+        
+        // 検出結果の処理
+        function onResults(results) {
+            // キャンバスをクリア
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // 検出された手を処理
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                // 手が検出されたらガイダンスを非表示
+                hideHandGuidance();
+                
+                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                    const landmarks = results.multiHandLandmarks[i];
+                    
+                    // 手のランドマークを描画（スタイルを強調）
+                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+                        color: 'rgba(255, 255, 255, 0.8)', 
+                        lineWidth: 4,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)',
+                        shadowBlur: 5
+                    });
+                    
+                    drawLandmarks(canvasCtx, landmarks, {
+                        color: 'rgba(0, 255, 255, 0.9)', 
+                        lineWidth: 2
+                    });
+                    
+                    // ジェスチャーを認識
+                    const gesture = recognizeGesture(landmarks);
+                    
+                    // ジェスチャー状態を更新
+                    updateGestureState(gesture);
+                }
+            } else {
+                // 手が検出されなくなったら全てのジェスチャーをリセット
+                resetGestureStability();
+                
+                // 一定時間後にガイダンスを表示
+                showHandGuidanceAfterDelay();
+            }
+            
+            // ジェスチャーに基づいてネコを表示/非表示
+            updateCats();
+        }
+        
+        // 手のガイダンスを表示（遅延付き）
+        function showHandGuidanceAfterDelay() {
+            clearTimeout(handGuidanceTimeout);
+            handGuidanceTimeout = setTimeout(() => {
+                handGuidance.style.opacity = '0.7';
+            }, 3000);
+        }
+        
+        // 手のガイダンスを非表示
+        function hideHandGuidance() {
+            clearTimeout(handGuidanceTimeout);
+            handGuidance.style.opacity = '0';
+        }
+        
+        // ジェスチャー認識関数（元の高精度アルゴリズム）
+        function recognizeGesture(landmarks) {
+            if (!landmarks || landmarks.length === 0) return null;
+            
+            // 指先と手首のランドマーク
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+            const wrist = landmarks[0];
+            
+            // 各指のMCP関節（指の付け根）
+            const thumbMcp = landmarks[1];
+            const indexMcp = landmarks[5];
+            const middleMcp = landmarks[9];
+            const ringMcp = landmarks[13];
+            const pinkyMcp = landmarks[17];
+            
+            // 指が伸びているかどうかを判定
+            const isThumbUp = thumbTip.y < thumbMcp.y;
+            const isIndexUp = indexTip.y < indexMcp.y - 0.05;
+            const isMiddleUp = middleTip.y < middleMcp.y - 0.05;
+            const isRingUp = ringTip.y < ringMcp.y - 0.05;
+            const isPinkyUp = pinkyTip.y < pinkyMcp.y - 0.05;
+            
+            // 親指と人差し指の距離
+            const thumbIndexDistance = Math.sqrt(
+                Math.pow(thumbTip.x - indexTip.x, 2) + 
+                Math.pow(thumbTip.y - indexTip.y, 2)
+            );
+            
+            // デバッグ情報の表示
+            debugPanel.innerHTML = `
+                親指: ${isThumbUp ? '伸' : '曲'} / 
+                人差指: ${isIndexUp ? '伸' : '曲'} / 
+                中指: ${isMiddleUp ? '伸' : '曲'} / 
+                薬指: ${isRingUp ? '伸' : '曲'} / 
+                小指: ${isPinkyUp ? '伸' : '曲'}
+            `;
+            
+            // ジェスチャー判定ロジック
+            if (!isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp) {
+                return 'rock'; // グー
+            } else if (isIndexUp && isMiddleUp && isRingUp && isPinkyUp) {
+                return 'paper'; // パー
+            } else if (isIndexUp && isMiddleUp && !isRingUp && !isPinkyUp) {
+                return 'scissors'; // チョキ
+            }
+            
+            return null;
+        }
+        
+        // ジェスチャー状態を更新
+        function updateGestureState(gesture) {
+            // 前回の状態を保存
+            Object.keys(lastGestures).forEach(key => {
+                lastGestures[key] = gestures[key];
+            });
+            
+            // 全てのジェスチャーを一旦falseに
+            Object.keys(gestures).forEach(key => {
+                gestures[key] = false;
+            });
+            
+            // 現在のジェスチャーをtrue
+            if (gesture) {
+                gestures[gesture] = true;
+            }
+            
+            // ジェスチャーの安定性を更新
+            Object.keys(gestures).forEach(key => {
+                if (gestures[key]) {
+                    gestureStability[key]++;
+                } else {
+                    gestureStability[key] = 0;
+                }
+                
+                // カードのスタイルを更新
+                const card = document.getElementById(`${key}-card`);
+                const statusElement = card.querySelector('.gesture-status');
+                
+                if (gestureStability[key] >= STABILITY_THRESHOLD) {
+                    card.classList.add('active');
+                    statusElement.textContent = '検出中';
+                } else {
+                    card.classList.remove('active');
+                    statusElement.textContent = '未検出';
+                }
+            });
+        }
+        
+        // ジェスチャー安定性をリセット
+        function resetGestureStability() {
+            Object.keys(gestureStability).forEach(key => {
+                gestureStability[key] = 0;
+                gestures[key] = false;
+                
+                // カードのスタイルをリセット
+                const card = document.getElementById(`${key}-card`);
+                card.classList.remove('active');
+                const statusElement = card.querySelector('.gesture-status');
+                statusElement.textContent = '未検出';
+            });
+        }
+        
+        // 猫を更新
+        function updateCats() {
+            Object.keys(gestures).forEach(gesture => {
+                if (gestureStability[gesture] >= STABILITY_THRESHOLD && !activeCats[gesture].active) {
+                    // 新しいネコを作成
+                    createCat(gesture);
+                } else if (gestureStability[gesture] < STABILITY_THRESHOLD && activeCats[gesture].active) {
+                    // 既存のネコを削除
+                    removeCat(gesture);
+                }
+            });
+        }
+        
+        // 猫を作成
+        function createCat(type) {
+            if (activeCats[type].active) return;
+            
+            const cat = cats[type];
+            activeCats[type].active = true;
+            
+            // 猫の初期位置を設定
+            const startPosition = -200;
+            activeCats[type].position = startPosition;
+            
+            // シーンの背景を少し変更
+            sceneContainer.style.backgroundColor = cat.sceneTint;
+            
+            // 猫のSVG要素を作成
+            const catElement = document.createElement('div');
+            catElement.className = 'cat';
+            catElement.id = `cat-${type}`;
+            catElement.style.left = `${startPosition}px`;
+            
+            // SVGで猫を描画
+            catElement.innerHTML = createCatSvg(type);
+            
+            // シーンに追加
+            sceneContainer.appendChild(catElement);
+            activeCats[type].element = catElement;
+            
+            // 入場アニメーション
+            animateCatEntrance(type);
+            
+            // エフェクトを追加
+            createCatEffect(type);
+            
+            // 足跡を追加
+            createFootprints(type, startPosition);
+        }
+        
+        // 猫を削除
+        function removeCat(type) {
+            if (!activeCats[type].active) return;
+            
+            // 退場アニメーション
+            animateCatExit(type);
+        }
+        
+        // 猫のSVGを作成
+        function createCatSvg(type) {
+            const cat = cats[type];
+            
+            // 猫のタイプ別にSVGを生成
+            switch (type) {
+                case 'rock':
+                    return `
+                        <svg width="150" height="120" viewBox="0 0 150 120" xmlns="http://www.w3.org/2000/svg">
+                            <!-- 体 -->
+                            <ellipse cx="70" cy="90" rx="40" ry="25" fill="${cat.color}" />
+                            
+                            <!-- 尻尾 -->
+                            <path d="M110,90 C140,80 145,50 120,40" stroke="${cat.color}" stroke-width="12" fill="none" stroke-linecap="round">
+                                <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0 110 90" to="5 110 90" dur="2s" repeatCount="indefinite" />
+                            </path>
+                            
+                            <!-- 縞模様 -->
+                            <path d="M50,80 C60,75 80,75 90,80" stroke="${cat.accentColor}" stroke-width="3" fill="none" />
+                            <path d="M45,90 C60,85 80,85 95,90" stroke="${cat.accentColor}" stroke-width="3" fill="none" />
+                            <path d="M40,100 C60,95 80,95 100,100" stroke="${cat.accentColor}" stroke-width="3" fill="none" />
+                            
+                            <!-- 頭 -->
+                            <circle cx="40" cy="70" r="25" fill="${cat.color}" />
+                            
+                            <!-- 耳 -->
+                            <polygon points="25,50 30,35 45,50" fill="${cat.color}" />
+                            <polygon points="55,50 50,35 35,50" fill="${cat.color}" />
+                            <polygon points="28,48 32,38 42,48" fill="${cat.accentColor}" opacity="0.6" />
+                            <polygon points="52,48 48,38 38,48" fill="${cat.accentColor}" opacity="0.6" />
+                            
+                            <!-- 顔 -->
+                            <circle cx="30" cy="65" r="4" fill="#000" /> <!-- 左目 -->
+                            <circle cx="50" cy="65" r="4" fill="#000" /> <!-- 右目 -->
+                            <circle cx="32" cy="63" r="1.5" fill="white" /> <!-- 左目ハイライト -->
+                            <circle cx="52" cy="63" r="1.5" fill="white" /> <!-- 右目ハイライト -->
+                            
+                            <!-- 鼻と口 -->
+                            <path d="M40,72 L40,77 M40,77 Q35,82 40,82 M40,77 Q45,82 40,82" stroke="#000" stroke-width="1.5" fill="none" />
+                            <ellipse cx="40" cy="73" rx="3" ry="2" fill="#FFA0A0" />
+                            
+                            <!-- ひげ -->
+                            <g stroke="#333" stroke-width="1.5" opacity="0.7">
+                                <line x1="15" y1="70" x2="25" y2="75" />
+                                <line x1="15" y1="75" x2="25" y2="77" />
+                                <line x1="15" y1="80" x2="25" y2="79" />
+                                <line x1="55" y1="75" x2="65" y2="70" />
+                                <line x1="55" y1="77" x2="65" y2="75" />
+                                <line x1="55" y1="79" x2="65" y2="80" />
+                            </g>
+                            
+                            <!-- 前足 -->
+                            <path d="M50,105 C45,115 40,120 35,125" stroke="${cat.color}" stroke-width="10" fill="none" stroke-linecap="round" />
+                            <path d="M90,105 C95,115 100,120 105,125" stroke="${cat.color}" stroke-width="10" fill="none" stroke-linecap="round" />
+                        </svg>
+                    `;
+                case 'paper':
+                    return `
+                        <svg width="150" height="120" viewBox="0 0 150 120" xmlns="http://www.w3.org/2000/svg">
+                            <!-- 体 -->
+                            <ellipse cx="70" cy="90" rx="40" ry="25" fill="${cat.color}" />
+                            
+                            <!-- 尻尾 -->
+                            <path d="M110,90 C150,85 145,60 130,50" stroke="${cat.color}" stroke-width="12" fill="none" stroke-linecap="round">
+                                <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0 110 90" to="3 110 90" dur="3s" repeatCount="indefinite" />
+                            </path>
+                            
+                            <!-- 頭 -->
+                            <circle cx="40" cy="70" r="25" fill="${cat.color}" />
+                            
+                            <!-- 耳 -->
+                            <polygon points="25,50 30,35 45,50" fill="${cat.color}" />
+                            <polygon points="55,50 50,35 35,50" fill="${cat.color}" />
+                            <polygon points="28,48 32,38 42,48" fill="${cat.accentColor}" opacity="0.3" />
+                            <polygon points="52,48 48,38 38,48" fill="${cat.accentColor}" opacity="0.3" />
+                            
+                            <!-- 顔 -->
+                            <ellipse cx="30" cy="65" rx="3" ry="4" fill="#000" /> <!-- 左目 -->
+                            <ellipse cx="50" cy="65" rx="3" ry="4" fill="#000" /> <!-- 右目 -->
+                            <circle cx="31" cy="63" r="1" fill="white" /> <!-- 左目ハイライト -->
+                            <circle cx="51" cy="63" r="1" fill="white" /> <!-- 右目ハイライト -->
+                            
+                            <!-- 鼻と口 -->
+                            <path d="M40,72 L40,77 M40,77 Q35,82 40,82 M40,77 Q45,82 40,82" stroke="#000" stroke-width="1.5" fill="none" />
+                            <ellipse cx="40" cy="73" rx="2" ry="1.5" fill="#FFA0A0" />
+                            
+                            <!-- ひげ -->
+                            <g stroke="#333" stroke-width="0.8" opacity="0.5">
+                                <line x1="15" y1="70" x2="25" y2="75" />
+                                <line x1="15" y1="75" x2="25" y2="77" />
+                                <line x1="15" y1="80" x2="25" y2="79" />
+                                <line x1="55" y1="75" x2="65" y2="70" />
+                                <line x1="55" y1="77" x2="65" y2="75" />
+                                <line x1="55" y1="79" x2="65" y2="80" />
+                            </g>
+                            
+                            <!-- 前足 -->
+                            <path d="M50,105 C45,115 40,120 35,125" stroke="${cat.color}" stroke-width="9" fill="none" stroke-linecap="round" />
+                            <path d="M90,105 C95,115 100,120 105,125" stroke="${cat.color}" stroke-width="9" fill="none" stroke-linecap="round" />
+                        </svg>
+                    `;
+                case 'scissors':
+                    return `
+                        <svg width="150" height="120" viewBox="0 0 150 120" xmlns="http://www.w3.org/2000/svg">
+                            <!-- 体 -->
+                            <ellipse cx="70" cy="90" rx="40" ry="25" fill="${cat.color}" />
+                            
+                            <!-- 尻尾 -->
+                            <path d="M110,90 C140,70 145,50 120,40" stroke="${cat.color}" stroke-width="12" fill="none" stroke-linecap="round">
+                                <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="-5 110 90" to="5 110 90" dur="1s" repeatCount="indefinite" />
+                            </path>
+                            
+                            <!-- 模様 -->
+                            <circle cx="50" cy="80" r="12" fill="${cat.accentColor}" opacity="0.7" />
+                            <circle cx="85" cy="95" r="10" fill="${cat.accentColor}" opacity="0.7" />
+                            <circle cx="60" cy="105" r="8" fill="${cat.accentColor}" opacity="0.7" />
+                            
+                            <!-- 頭 -->
+                            <circle cx="40" cy="70" r="25" fill="${cat.color}" />
+                            
+                            <!-- 耳 -->
+                            <polygon points="25,50 30,35 45,50" fill="${cat.color}" />
+                            <polygon points="55,50 50,35 35,50" fill="${cat.color}" />
+                            <polygon points="28,48 32,38 42,48" fill="${cat.accentColor}" opacity="0.7" />
+                            <polygon points="52,48 48,38 38,48" fill="${cat.accentColor}" opacity="0.7" />
+                            
+                            <!-- 顔 -->
+                            <circle cx="30" cy="65" r="4" fill="#000" /> <!-- 左目 -->
+                            <circle cx="50" cy="65" r="4" fill="#000" /> <!-- 右目 -->
+                            <circle cx="32" cy="63" r="1.5" fill="white" /> <!-- 左目ハイライト -->
+                            <circle cx="52" cy="63" r="1.5" fill="white" /> <!-- 右目ハイライト -->
+                            
+                            <!-- 鼻と口 -->
+                            <path d="M40,72 L40,77 M40,77 Q35,82 40,82 M40,77 Q45,82 40,82" stroke="#000" stroke-width="1.5" fill="none" />
+                            <ellipse cx="40" cy="73" rx="3" ry="2" fill="#FFA0A0" />
+                            
+                            <!-- ひげ -->
+                            <g stroke="#333" stroke-width="1.2" opacity="0.7">
+                                <line x1="15" y1="70" x2="25" y2="75" />
+                                <line x1="15" y1="75" x2="25" y2="77" />
+                                <line x1="15" y1="80" x2="25" y2="79" />
+                                <line x1="55" y1="75" x2="65" y2="70" />
+                                <line x1="55" y1="77" x2="65" y2="75" />
+                                <line x1="55" y1="79" x2="65" y2="80" />
+                            </g>
+                            
+                            <!-- 前足 -->
+                            <path d="M50,105 C45,115 40,120 35,125" stroke="${cat.color}" stroke-width="10" fill="none" stroke-linecap="round" />
+                            <path d="M90,105 C95,115 100,120 105,125" stroke="${cat.color}" stroke-width="10" fill="none" stroke-linecap="round" />
+                        </svg>
+                    `;
+            }
+        }
+        
+        // 猫の登場アニメーション
+        function animateCatEntrance(type) {
+            const cat = activeCats[type];
+            const catData = cats[type];
+            
+            // アニメーションタイプに基づいた動き
+            let startPosition = -150;
+            let targetPosition = 100 + (Object.keys(activeCats).indexOf(type) * 150);
+            let duration = 1000;
+            let easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'; // 弾むような動き
+            
+            // 猫タイプによってアニメーションを変更
+            switch (catData.animation) {
+                case 'bold': // 力強い動き
+                    duration = 800;
+                    easing = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+                    break;
+                case 'elegant': // 優雅な動き
+                    duration = 1500;
+                    easing = 'cubic-bezier(0.33, 1, 0.68, 1)';
+                    break;
+                case 'playful': // 遊び好きな動き
+                    duration = 600;
+                    easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    break;
+            }
+            
+            // アニメーションを適用
+            cat.element.style.transition = `left ${duration}ms ${easing}`;
+            cat.element.style.left = `${targetPosition}px`;
+            cat.position = targetPosition;
+            
+            // アイドルアニメーションを追加
+            setTimeout(() => {
+                if (cat.active) {
+                    startIdleAnimation(type);
+                }
+            }, duration);
+        }
+        
+        // 猫の退場アニメーション
+        function animateCatExit(type) {
+            const cat = activeCats[type];
+            
+            // アニメーションプロパティ
+            cat.element.style.transition = 'left 800ms cubic-bezier(0.4, 0, 1, 1)';
+            cat.element.style.left = '-150px';
+            
+            // アニメーション完了後に削除
+            setTimeout(() => {
+                if (cat.element && cat.element.parentNode) {
+                    cat.element.remove();
+                }
+                cat.active = false;
+                cat.element = null;
+                cat.position = 0;
+                
+                // アイドルアニメーションがあれば停止
+                if (cat.animation) {
+                    clearInterval(cat.animation);
+                    cat.animation = null;
+                }
+            }, 800);
+        }
+        
+        // 猫のアイドルアニメーション
+        function startIdleAnimation(type) {
+            const cat = activeCats[type];
+            const catData = cats[type];
+            
+            // 既存のアニメーションがあれば停止
+            if (cat.animation) {
+                clearInterval(cat.animation);
+            }
+            
+            // 猫タイプによって異なるアイドルアニメーション
+            switch (catData.animation) {
+                case 'bold': // 尾をゆっくり動かし、時々頭を振る
+                    cat.animation = setInterval(() => {
+                        if (Math.random() < 0.3) {
+                            cat.element.style.transform = 'rotate(-3deg)';
+                            setTimeout(() => {
+                                if (cat.active) cat.element.style.transform = 'rotate(0deg)';
+                            }, 300);
+                        }
+                    }, 2000);
+                    break;
+                case 'elegant': // わずかに上下に揺れる
+                    cat.animation = setInterval(() => {
+                        cat.element.style.transform = 'translateY(-5px)';
+                        setTimeout(() => {
+                            if (cat.active) cat.element.style.transform = 'translateY(0)';
+                        }, 800);
+                    }, 2500);
+                    break;
+                case 'playful': // 跳ねるような動き
+                    cat.animation = setInterval(() => {
+                        cat.element.style.transform = 'translateY(-10px) rotate(3deg)';
+                        setTimeout(() => {
+                            if (cat.active) cat.element.style.transform = 'translateY(0) rotate(-2deg)';
+                            setTimeout(() => {
+                                if (cat.active) cat.element.style.transform = 'translateY(0) rotate(0deg)';
+                            }, 200);
+                        }, 200);
+                    }, 1200);
+                    break;
+            }
+        }
+        
+        // 猫の足跡を作成
+        function createFootprints(type, startX) {
+            const catData = cats[type];
+            const footprintCount = 5;
+            const spacing = catData.footprintSpacing;
+            
+            for (let i = 0; i < footprintCount; i++) {
+                const x = startX + (i * spacing);
+                
+                // 足跡がマイナス座標の場合はスキップ
+                if (x < 0) continue;
+                
+                setTimeout(() => {
+                    // 猫がまだアクティブなら足跡を追加
+                    if (activeCats[type].active) {
+                        addFootprint(type, x);
+                    }
+                }, i * 100);
+            }
+        }
+        
+        // 足跡を追加
+        function addFootprint(type, x) {
+            const catData = cats[type];
+            const footprint = document.createElement('div');
+            footprint.className = 'footprint';
+            
+            // 猫タイプに基づいた足跡のスタイル
+            footprint.innerHTML = `
+                <svg width="20" height="15" viewBox="0 0 20 15" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5,0 C8,0 10,3 10,7 C10,12 0,12 0,7 C0,3 2,0 5,0 Z" fill="${catData.footprintColor}" opacity="0.5" />
+                    <path d="M15,0 C18,0 20,3 20,7 C20,12 10,12 10,7 C10,3 12,0 15,0 Z" fill="${catData.footprintColor}" opacity="0.5" />
+                </svg>
+            `;
+            
+            // 左右にランダムに配置
+            const offset = Math.random() * 20 - 10;
+            footprint.style.left = `${x + offset}px`;
+            
+            // 少しランダムに回転
+            const rotation = Math.random() * 20 - 10;
+            footprint.style.transform = `rotate(${rotation}deg)`;
+            
+            sceneContainer.appendChild(footprint);
+            
+            // 足跡はしばらくしたら消える
+            setTimeout(() => {
+                footprint.style.opacity = '0';
+                setTimeout(() => {
+                    if (footprint.parentNode) {
+                        footprint.remove();
+                    }
+                }, 500);
+            }, 5000);
+        }
+        
+        // 猫のエフェクトを作成
+        function createCatEffect(type) {
+            const catData = cats[type];
+            
+            // エフェクトの数
+            const particleCount = 10;
+            
+            // エフェクトアニメーション
+            for (let i = 0; i < particleCount; i++) {
+                setTimeout(() => {
+                    // 猫がまだアクティブならエフェクトを追加
+                    if (activeCats[type].active) {
+                        addEffectParticle(type);
+                    }
+                }, i * 200);
+            }
+        }
+        
+        // エフェクトパーティクルを追加
+        function addEffectParticle(type) {
+            const cat = activeCats[type];
+            const catData = cats[type];
+            
+            if (!cat.active) return;
+            
+            const particle = document.createElement('div');
+            particle.className = 'effect-particle';
+            
+            // パーティクルのプロパティ
+            const size = 5 + Math.random() * 15;
+            const x = cat.position + 40 + Math.random() * 70;
+            const y = 200 + Math.random() * 40;
+            const duration = 0.5 + Math.random() * 1;
+            
+            // スタイルを設定
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            particle.style.backgroundColor = catData.effectColor;
+            particle.style.opacity = '0';
+            particle.style.boxShadow = `0 0 10px ${catData.effectColor}`;
+            
+            // アニメーション
+            particle.style.animation = `sparkle ${duration}s ease-in-out forwards`;
+            
+            sceneContainer.appendChild(particle);
+            
+            // アニメーション終了後に削除
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.remove();
+                }
+            }, duration * 1000);
+        }
+        
+        // MediaPipeの手のランドマーク接続定義
+        const HAND_CONNECTIONS = [
+            [0, 1], [1, 2], [2, 3], [3, 4],           // 親指
+            [0, 5], [5, 6], [6, 7], [7, 8],           // 人差し指
+            [0, 9], [9, 10], [10, 11], [11, 12],      // 中指
+            [0, 13], [13, 14], [14, 15], [15, 16],    // 薬指
+            [0, 17], [17, 18], [18, 19], [19, 20],    // 小指
+            [0, 5], [5, 9], [9, 13], [13, 17]         // 手の平
+        ];
+        
+        // ランドマークを描画（視認性を高めるように修正）
+        function drawLandmarks(ctx, landmarks, options) {
+            if (!landmarks) return;
+            
+            ctx.fillStyle = options.color || 'rgba(0, 255, 255, 0.9)';
+            
+            for (const landmark of landmarks) {
+                const x = landmark.x * canvasElement.width;
+                const y = landmark.y * canvasElement.height;
+                
+                // 影の設定（視認性向上）
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 4;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, options.lineWidth * 2, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // 影をリセット
+                ctx.shadowBlur = 0;
+            }
+        }
+        
+        // ランドマーク間の接続線を描画（視認性を高めるように修正）
+        function drawConnectors(ctx, landmarks, connections, options) {
+            if (!landmarks) return;
+            
+            ctx.strokeStyle = options.color || 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = options.lineWidth || 4;
+            
+            // 影の設定（視認性向上）
+            if (options.shadowColor) {
+                ctx.shadowColor = options.shadowColor;
+                ctx.shadowBlur = options.shadowBlur || 0;
+            }
+            
+            for (const connection of connections) {
+                const [i, j] = connection;
+                const start = landmarks[i];
+                const end = landmarks[j];
+                
+                if (start && end) {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x * canvasElement.width, start.y * canvasElement.height);
+                    ctx.lineTo(end.x * canvasElement.width, end.y * canvasElement.height);
+                    ctx.stroke();
+                }
+            }
+            
+            // 影をリセット
+            ctx.shadowBlur = 0;
+        }
+        
+        // カメラクラス（MediaPipe用カスタムカメラ）
+        class Camera {
+            constructor(videoElement, config) {
+                this.video = videoElement;
+                this.config = config;
+                this.running = false;
+            }
+            
+            static async setup(videoElement, config) {
+                const camera = new Camera(videoElement, config);
+                await camera.start();
+                return camera;
+            }
+            
+            async start() {
+                if (this.running) return;
+                
+                try {
+                    this.video.srcObject = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'user',
+                            width: this.config.width,
+                            height: this.config.height
+                        },
+                        audio: false
+                    });
+                    
+                    this.video.addEventListener('loadedmetadata', () => {
+                        this.video.play();
+                        this.running = true;
+                        this.animate();
+                    });
+                    
+                } catch (error) {
+                    console.error('カメラアクセスエラー:', error);
+                    
+                    if (error.name === 'NotAllowedError') {
+                        alert('カメラへのアクセスが拒否されました。ブラウザの設定でカメラへのアクセスを許可してください。');
+                    } else if (error.name === 'NotReadableError' || error.name === 'AbortError') {
+                        alert('カメラにアクセスできません。他のアプリケーションがカメラを使用しているか、ブラウザにカメラへのアクセス権限がない可能性があります。');
+                    } else if (error.name === 'NotFoundError') {
+                        alert('カメラが見つかりません。カメラが接続されていることを確認してください。');
+                    } else if (location.protocol === 'file:') {
+                        alert('ローカルファイルからのカメラアクセスはセキュリティ制限により許可されていません。HTTPSサーバー上でこのページを実行するか、Chromeで chrome://flags/#unsafely-treat-insecure-origin-as-secure 設定を有効にしてください。');
+                    } else {
+                        alert('カメラの起動に失敗しました: ' + error.message);
+                    }
+                    
+                    throw error;
+                }
+            }
+            
+            stop() {
+                if (!this.running) return;
+                
+                const tracks = this.video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                this.video.srcObject = null;
+                this.running = false;
+            }
+            
+            async animate() {
+                if (!this.running) return;
+                
+                await this.config.onFrame();
+                requestAnimationFrame(this.animate.bind(this));
+            }
+        }
+        
+        // イベントリスナーの設定
+        startBtn.addEventListener('click', async () => {
+            try {
+                if (!hands) {
+                    loadingOverlay.style.display = 'flex';
+                    const initialized = await initHandTracking();
+                    if (!initialized) return;
+                }
+                
+                isRunning = true;
+                
+                await camera.start();
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                
+                // ガイダンスを表示する
+                handGuidance.style.opacity = '0.7';
+                
+            } catch (error) {
+                console.error('エラー:', error);
+                alert('カメラの起動に失敗しました。カメラへのアクセス許可を確認してください。\n\nローカルファイルとして開いている場合は、ChromeでHTTPSサーバー上で実行するか、chrome://flags/#unsafely-treat-insecure-origin-as-secure 設定を有効にしてください。');
+            }
+        });
+        
+        stopBtn.addEventListener('click', () => {
+            isRunning = false;
+            if (camera) camera.stop();
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            // 全てのネコを削除
+            Object.keys(activeCats).forEach(type => {
+                if (activeCats[type].active) {
+                    removeCat(type);
+                }
+            });
+            
+            // ジェスチャー状態をリセット
+            resetGestureStability();
+            
+            // ガイダンスを非表示
+            hideHandGuidance();
+            
+            // キャンバスをクリア
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        });
+        
+        // ページ読み込み時に実行
+        document.addEventListener('DOMContentLoaded', () => {
+            // 環境を初期化
+            initializeEnvironment();
+            
+            // ローカルファイルでの実行チェック
+            if (location.protocol === 'file:') {
+                console.warn('ローカルファイルからの実行です。カメラへのアクセスが制限される可能性があります。');
+            }
+            
+            // キャンバスサイズをシーンコンテナに合わせて設定
+            updateCanvasSize();
+            
+            // 初期表示時にスタートボタンだけを有効化
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            // モデルの読み込みを開始
+            initHandTracking();
+        });
+        
+        // ウィンドウサイズが変更されたときにキャンバスサイズも更新
+        window.addEventListener('resize', () => {
+            updateCanvasSize();
+        });
+    </script>
+</body>
+</html>
