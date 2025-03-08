@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あおむしAI Lab | ポートフォリオ</title>
+    <style>
+        /* ベーススタイル */
+        :root {
+            --primary-blue: #1A3C8B;
+            --primary-green: #50C878;
+            --accent-purple: #8A2BE2;
+            --dark-gray: #333333;
+            --light-gray: #F5F5F5;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: var(--dark-gray);
+            overflow-x: hidden;
+            background-color: var(--light-gray);
+        }
+        
+        /* スクロールバーのカスタマイズ */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(26, 60, 139, 0.1);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary-green), var(--accent-purple));
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--accent-purple), var(--primary-green));
+            background-clip: content-box;
+        }
+        
+        /* Firefox のスクロールバー */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-green) rgba(26, 60, 139, 0.1);
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+        
+        .accent-text {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+        }
+        
+        .code {
+            font-family: 'Fira Code', monospace;
+        }
+        
+        /* ナビゲーション */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            z-index: 1000;
+            transition: all 0.4s ease;
+            background: linear-gradient(to right, rgba(26, 60, 139, 0.9), rgba(80, 200, 120, 0.8));
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: white;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        .logo svg {
+            height: 40px;
+            width: auto;
+            transition: all 0.3s ease;
+        }
+        
+        .logo:hover svg {
+            transform: rotate(10deg) scale(1.05);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 0.5rem 0;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            font-size: 1.05rem;
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+        
+        .nav-links a:hover {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        
+        .nav-links a:hover::after {
+            width: 80%;
+        }
+        
+        /* ヒーローセクション */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding: 0 2rem;
+            background: linear-gradient(135deg, #0b2447 0%, #1a3c8b 100%);
+            color: white;
+        }
+        
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 80px; /* スクロールインジケーターのためのスペース */
+        }
+        
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--primary-green), var(--accent-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: fadeIn 1s ease-in-out;
+        }
+        
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+            animation: fadeIn 1.5s ease-in-out;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+            animation: fadeIn 2s ease-in-out;
+            margin: 0 auto;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary-green), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 15px rgba(80, 200, 120, 0.4);
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(80, 200, 120, 0.6);
+        }
+        
+        #contact-link {
+            color: white;
+            text-decoration: none;
+            position: relative;
+            font-weight: 500;
+            padding: 0.5rem 0;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+        
+        #contact-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background: white;
+            transition: width 0.3s ease;
+        }
+        
+        #contact-link:hover {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        
+        #contact-link:hover::after {
+            width: 100%;
+        }
+        
+        /* スクロールインジケーター */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 0;
+            right: 0;
+            margin: 0 auto;
+            width: 100px;
+            animation: fadeInOut 2s infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.4; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(5px); }
+        }
+        
+        .scroll-text {
+            color: white;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            font-weight: 300;
+            text-transform: uppercase;
+            margin-bottom: 0.2rem;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .scroll-arrows {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            width: 100%;
+        }
+        
+        .scroll-arrow {
+            width: 10px;
+            height: 10px;
+            border-right: 2px solid white;
+            border-bottom: 2px solid white;
+            transform: rotate(45deg);
+        }
+        
+        .scroll-arrow:nth-child(2) {
+            opacity: 0.8;
+        }
+        
+        .scroll-arrow:nth-child(3) {
+            opacity: 0.6;
+        }
+        
+        /* プロジェクトセクション */
+        .projects {
+            padding: 8rem 2rem;
+            background-color: white;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .section-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-blue);
+        }
+        
+        .section-header p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+            color: var(--dark-gray);
+        }
+        
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .project-card {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            height: 300px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .project-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+        
+        .project-card:hover img {
+            transform: scale(1.1);
+        }
+        
+        .project-card-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+            color: white;
+        }
+        
+        .project-card-content h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .project-tag {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            background: var(--accent-purple);
+            color: white;
+        }
+        
+        /* スキルセクション */
+        .skills {
+            padding: 8rem 2rem;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .skills-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .skills-graph {
+            display: flex;
+            justify-content: center;
+            margin: 4rem 0;
+            position: relative;
+            height: 400px;
+        }
+        
+        .skill-category {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .skill-category:hover {
+            transform: scale(1.1);
+        }
+        
+        .machine-learning {
+            top: 50%;
+            left: 30%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a3c8b, #4a7fd9);
+        }
+        
+        .computer-vision {
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #50c878, #00796b);
+        }
+        
+        .nlp {
+            top: 50%;
+            left: 70%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #8a2be2, #d82fd6);
+        }
+        
+        .web-dev {
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #ff8a65, #ff5722);
+        }
+        
+        /* 連絡先セクション */
+        .contact {
+            padding: 8rem 2rem;
+            background: linear-gradient(135deg, #0b2447 0%, #1a3c8b 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .contact-header h2 {
+            color: white;
+            font-size: 3.5rem;
+            text-shadow: 0 0 15px rgba(138, 43, 226, 0.7);
+            margin-bottom: 1.5rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .contact-header h2::after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-green), var(--accent-purple));
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+        
+        .contact-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.4rem;
+            max-width: 700px;
+            margin: 0 auto;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+        
+        .contact-container {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .contact-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 15px;
+            margin-top: 3rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .btn btn-primary {
+            align-items: center;
+        }
+        /* フッター */
+        footer {
+            padding: 4rem 2rem;
+            background-color: var(--dark-gray);
+            color: white;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .social-link {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .social-link:hover {
+            background: var(--primary-green);
+            transform: translateY(-3px);
+        }
+        
+        .copyright {
+            width: 100%;
+            text-align: center;
+            margin-top: 2rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+        
+        /* アニメーション */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-20px);
+            }
+            60% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        /* レスポンシブデザイン */
+        @media (max-width: 992px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+            
+            .skill-category {
+                width: 100px;
+                height: 100px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1.2rem;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+            }
+            
+            .skills-graph {
+                height: 600px;
+                flex-direction: column;
+                align-items: center;
+                gap: 2rem;
+            }
+            
+            .skill-category {
+                position: relative;
+                top: auto;
+                left: auto;
+                transform: none;
+                margin: 1rem 0;
+            }
+        }
+    </style>
+    <!-- ニューラルネットワークのエフェクト用のScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<script>
+    // プロジェクトカードをクリック可能にする機能を追加
+    document.addEventListener('DOMContentLoaded', () => {
+        // プロジェクトリンクの設定
+        const projectLinks = [
+            {
+                title: "ネコ呼び出しジェスチャーゲーム",
+                url: "/projects/cat-gesture-game.html"
+            },
+            {
+                title: "Reversis",
+                url: "/projects/reversis.html"
+            }
+        ];
+        
+        // すべてのプロジェクトカードを取得
+        const projectCards = document.querySelectorAll('.project-card');
+        
+        // 各カードにクリックイベントを追加
+        projectCards.forEach(card => {
+            // プロジェクトのタイトルを取得
+            const title = card.querySelector('h3').textContent;
+            
+            // 対応するリンク情報を探す
+            const projectInfo = projectLinks.find(project => project.title === title);
+            
+            if (projectInfo) {
+                // カードにリンク先URLを設定
+                card.setAttribute('data-link', projectInfo.url);
+                
+                // カードにクリック可能なスタイルを追加
+                card.style.cursor = 'pointer';
+                
+                // クリックイベントリスナーを追加
+                card.addEventListener('click', () => {
+                    window.location.href = projectInfo.url;
+                });
+            }
+        });
+    });
+</script>
+<body>
+    <!-- ナビゲーション -->
+    <nav>
+        <div class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50,20 C60,20 70,25 70,40 C70,55 60,65 50,65 C40,65 30,55 30,40 C30,25 40,20 50,20 Z" fill="none" stroke="#50C878" stroke-width="4"/>
+                <path d="M30,40 Q50,60 70,40" fill="none" stroke="#50C878" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="40" cy="30" r="3" fill="#50C878"/>
+                <circle cx="60" cy="30" r="3" fill="#50C878"/>
+                <!-- 触覚 -->
+                <path d="M45,20 Q40,10 45,5" fill="none" stroke="#50C878" stroke-width="2" stroke-linecap="round"/>
+                <path d="M55,20 Q60,10 55,5" fill="none" stroke="#50C878" stroke-width="2" stroke-linecap="round"/>
+                <!-- 翼の要素（変態の暗示） -->
+                <path d="M70,40 Q85,30 90,45" fill="none" stroke="#8A2BE2" stroke-width="2" stroke-dasharray="2 2" stroke-linecap="round" opacity="0.7"/>
+                <path d="M30,40 Q15,30 10,45" fill="none" stroke="#8A2BE2" stroke-width="2" stroke-dasharray="2 2" stroke-linecap="round" opacity="0.7"/>
+            </svg>
+            <span>あおむし AI Lab</span>
+        </div>
+        <div class="nav-links">
+            <a href="#home">Home</a>
+            <a href="#about">About</a>
+            <a href="#projects">Projects</a>
+            <a href="#skills">Skills</a>
+            <a href="#contact">Contact</a>
+        </div>
+    </nav>
+
+    <!-- ヒーローセクション -->
+    <section class="hero" id="home">
+        <div class="hero-bg" id="neural-network-bg"></div>
+        <div class="hero-content">
+            <h1>あおむし AI Lab</h1>
+            <p class="accent-text">AIでいろいろ作る。</p>
+            <div class="cta-buttons">
+                <a href="#projects" class="btn btn-primary" id="view-projects-btn">プロジェクトを見る</a>
+                <a href="#contact" id="contact-link">お問い合わせ</a>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <span class="scroll-text">Scroll</span>
+            <div class="scroll-arrows">
+                <div class="scroll-arrow"></div>
+                <div class="scroll-arrow"></div>
+                <div class="scroll-arrow"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- プロジェクトセクション -->
+    <section class="projects" id="projects">
+        <div class="section-header">
+            <h2>AI Projects</h2>
+            <p>設計から実装まで、AIの可能性を探求するプロジェクト集</p>
+        </div>
+        <div class="project-grid">
+            <div class="project-card">
+                <img src="/api/placeholder/600/400" alt="画像認識プロジェクト" />
+                <div class="project-card-content">
+                    <h3>ネコ呼び出しジェスチャーゲーム</h3>
+                    <div class="project-tags">
+                        <span class="project-tag">カメラ</span>
+                    </div>
+                </div>
+            </div>
+            <div class="project-card">
+                <img src="/api/placeholder/600/400" alt="ゲーム開発プロジェクト" />
+                <div class="project-card-content">
+                    <h3>Reversis</h3>
+                    <div class="project-tags">
+                        <span class="project-tag">ボードゲーム</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- スキルセクション -->
+    <section class="skills" id="skills">
+        <div class="section-header">
+            <h2>Technical Skills</h2>
+            <p>AI開発から実装までの幅広い技術スタック</p>
+        </div>
+        <div class="skills-container">
+            <div class="skills-graph">
+                <div class="skill-category machine-learning">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>機械学習</span>
+                </div>
+                <div class="skill-category computer-vision">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="3" stroke="white" stroke-width="2"/>
+                        <path d="M20.188 10.9343C20.5762 11.4056 20.7703 11.6412 20.7703 12C20.7703 12.3588 20.5762 12.5944 20.188 13.0657C18.7679 14.7899 15.6357 18 12 18C8.36427 18 5.23206 14.7899 3.81197 13.0657C3.42381 12.5944 3.22973 12.3588 3.22973 12C3.22973 11.6412 3.42381 11.4056 3.81197 10.9343C5.23206 9.21014 8.36427 6 12 6C15.6357 6 18.7679 9.21014 20.188 10.9343Z" stroke="white" stroke-width="2"/>
+                    </svg>
+                    <span>画像認識</span>
+                </div>
+                <div class="skill-category nlp">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 4V20M4 8H20M4 16H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>自然言語処理</span>
+                </div>
+                <div class="skill-category web-dev">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12H19M5 12L9 8M5 12L9 16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Web開発</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 連絡先セクション -->
+    <section class="contact" id="contact">
+        <div class="section-header contact-header">
+            <h2>Contact</h2>
+            <p>プロジェクトのご相談やお問い合わせはこちらから</p>
+        </div>
+        <div class="contact-container">
+            <form class="contact-form">
+                <div class="form-group">
+                    <label for="name">お名前</label>
+                    <input type="text" id="name" class="form-control" placeholder="山田 太郎" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">メールアドレス</label>
+                    <input type="email" id="email" class="form-control" placeholder="example@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="message">メッセージ</label>
+                    <textarea id="message" class="form-control" placeholder="お問い合わせ内容をご記入ください" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">送信する</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- フッター -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-logo">
+                <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50,20 C60,20 70,25 70,40 C70,55 60,65 50,65 C40,65 30,55 30,40 C30,25 40,20 50,20 Z" fill="none" stroke="#50C878" stroke-width="4"/>
+                    <path d="M30,40 Q50,60 70,40" fill="none" stroke="#50C878" stroke-width="4" stroke-linecap="round"/>
+                    <circle cx="40" cy="30" r="3" fill="#50C878"/>
+                    <circle cx="60" cy="30" r="3" fill="#50C878"/>
+                    <path d="M45,20 Q40,10 45,5" fill="none" stroke="#50C878" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M55,20 Q60,10 55,5" fill="none" stroke="#50C878" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>あおむし AI Lab</span>
+            </div>
+            <div class="social-links">
+                <a href="#" class="social-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M23 3.01006C22.0424 3.68553 20.9821 4.20217 19.86 4.54006C19.2577 3.84757 18.4573 3.35675 17.567 3.13398C16.6767 2.91122 15.7395 2.96725 14.8821 3.29451C14.0247 3.62177 13.2884 4.20446 12.773 4.96377C12.2575 5.72309 11.9877 6.62239 12 7.54006V8.54006C10.2426 8.58562 8.50127 8.19587 6.93101 7.4055C5.36074 6.61513 4.01032 5.44869 3 4.01006C3 4.01006 -1 13.0101 8 17.0101C5.94053 18.408 3.48716 19.109 1 19.0101C10 24.0101 21 19.0101 21 7.51006C20.9991 7.23151 20.9723 6.95365 20.92 6.68006C21.9406 5.67355 22.6608 4.40277 23 3.01006Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <a href="#" class="social-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 8C17.5913 8 19.1174 8.63214 20.2426 9.75736C21.3679 10.8826 22 12.4087 22 14V21H18V14C18 13.4696 17.7893 12.9609 17.4142 12.5858C17.0391 12.2107 16.5304 12 16 12C15.4696 12 14.9609 12.2107 14.5858 12.5858C14.2107 12.9609 14 13.4696 14 14V21H10V14C10 12.4087 10.6321 10.8826 11.7574 9.75736C12.8826 8.63214 14.4087 8 16 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M6 9H2V21H6V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 6C5.10457 6 6 5.10457 6 4C6 2.89543 5.10457 2 4 2C2.89543 2 2 2.89543 2 4C2 5.10457 2.89543 6 4 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <a href="#" class="social-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 2C14.5013 4.73835 15.9228 8.29203 16 12C15.9228 15.708 14.5013 19.2616 12 22C9.49872 19.2616 8.07725 15.708 8 12C8.07725 8.29203 9.49872 4.73835 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <a href="#" class="social-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 9C11.2044 9 10.4413 9.31607 9.87868 9.87868C9.31607 10.4413 9 11.2044 9 12C9 12.7956 9.31607 13.5587 9.87868 14.1213C10.4413 14.6839 11.2044 15 12 15C12.7956 15 13.5587 14.6839 14.1213 14.1213C14.6839 13.5587 15 12.7956 15 12C15 11.2044 14.6839 10.4413 14.1213 9.87868C13.5587 9.31607 12.7956 9 12 9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M3 9C3 7.89543 3.89543 7 5 7H7C7.74028 7 8.38663 6.5978 8.73244 6H15.2676C15.6134 6.5978 16.2597 7 17 7H19C20.1046 7 21 7.89543 21 9V17C21 18.1046 20.1046 19 19 19H5C3.89543 19 3 18.1046 3 17V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2025 あおむし AI Lab. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- ニューラルネットワーク背景エフェクト -->
+    <script>
+        // Three.jsでニューラルネットワークの背景を作成
+        const createNeuralNetworkBackground = () => {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            document.getElementById('neural-network-bg').appendChild(renderer.domElement);
+            
+            // ニューロンの数
+            const particleCount = 100;
+            const particles = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            
+            // ニューロンの位置と色をランダムに設定
+            for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                positions[i3] = (Math.random() - 0.5) * 10;
+                positions[i3 + 1] = (Math.random() - 0.5) * 10;
+                positions[i3 + 2] = (Math.random() - 0.5) * 10;
+                
+                // 青と緑のグラデーション
+                colors[i3] = 0.1;
+                colors[i3 + 1] = 0.3 + Math.random() * 0.7; // 緑色成分
+                colors[i3 + 2] = 0.5 + Math.random() * 0.5; // 青色成分
+            }
+            
+            particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            
+            // ニューロンのマテリアル
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.1,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            // ニューロンをシーンに追加
+            const particleSystem = new THREE.Points(particles, particleMaterial);
+            scene.add(particleSystem);
+            
+            // 線の描画用の配列
+            const linePositions = [];
+            const lineColors = [];
+            const lineGeometries = [];
+            const lineMaterials = [];
+            const lines = [];
+            
+            // ニューロン間の接続線を作成
+            for (let i = 0; i < particleCount; i++) {
+                for (let j = i + 1; j < particleCount; j++) {
+                    // 距離が近いニューロン同士だけ接続
+                    const dx = positions[i * 3] - positions[j * 3];
+                    const dy = positions[i * 3 + 1] - positions[j * 3 + 1];
+                    const dz = positions[i * 3 + 2] - positions[j * 3 + 2];
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    
+                    if (distance < 3) {
+                        linePositions.push(
+                            positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
+                            positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2]
+                        );
+                        
+                        // 線の色（青と緑のグラデーション）
+                        const opacity = 1 - distance / 3;
+                        lineColors.push(
+                            0.1, 0.5, 0.8, 
+                            0.1, 0.5, 0.8
+                        );
+                        
+                        const lineGeometry = new THREE.BufferGeometry();
+                        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(
+                            [
+                                positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
+                                positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2]
+                            ], 
+                            3
+                        ));
+                        
+                        const lineMaterial = new THREE.LineBasicMaterial({ 
+                            color: new THREE.Color(0.1, 0.5, 0.8),
+                            transparent: true,
+                            opacity: opacity * 0.5
+                        });
+                        
+                        const line = new THREE.Line(lineGeometry, lineMaterial);
+                        scene.add(line);
+                        lines.push(line);
+                    }
+                }
+            }
+            
+            camera.position.z = 5;
+            
+            // アニメーション関数
+            const animate = () => {
+                requestAnimationFrame(animate);
+                
+                // ニューロンをわずかに動かす
+                for (let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
+                    positions[i3] += (Math.random() - 0.5) * 0.01;
+                    positions[i3 + 1] += (Math.random() - 0.5) * 0.01;
+                    positions[i3 + 2] += (Math.random() - 0.5) * 0.01;
+                    
+                    // 範囲を制限
+                    if (Math.abs(positions[i3]) > 5) positions[i3] *= 0.99;
+                    if (Math.abs(positions[i3 + 1]) > 5) positions[i3 + 1] *= 0.99;
+                    if (Math.abs(positions[i3 + 2]) > 5) positions[i3 + 2] *= 0.99;
+                }
+                
+                particles.attributes.position.needsUpdate = true;
+                
+                // 線の位置を更新
+                lines.forEach((line, idx) => {
+                    const positions = line.geometry.attributes.position.array;
+                    const i = Math.floor(idx / (particleCount - 1));
+                    const j = (idx % (particleCount - 1)) + i + 1;
+                    
+                    positions[0] = particles.attributes.position.array[i * 3];
+                    positions[1] = particles.attributes.position.array[i * 3 + 1];
+                    positions[2] = particles.attributes.position.array[i * 3 + 2];
+                    positions[3] = particles.attributes.position.array[j * 3];
+                    positions[4] = particles.attributes.position.array[j * 3 + 1];
+                    positions[5] = particles.attributes.position.array[j * 3 + 2];
+                    
+                    line.geometry.attributes.position.needsUpdate = true;
+                });
+                
+                // シーンを少し回転
+                particleSystem.rotation.x += 0.001;
+                particleSystem.rotation.y += 0.002;
+                
+                lines.forEach(line => {
+                    line.rotation.x += 0.001;
+                    line.rotation.y += 0.002;
+                });
+                
+                renderer.render(scene, camera);
+            };
+            
+            animate();
+            
+            // ウィンドウリサイズ時の処理
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+        
+        // ページ読み込み時にニューラルネットワーク背景を作成
+        window.addEventListener('load', createNeuralNetworkBackground);
+        
+        // プロジェクトを見るボタンとお問い合わせリンクのスムーススクロール機能強化
+        document.addEventListener('DOMContentLoaded', () => {
+            const viewProjectsBtn = document.getElementById('view-projects-btn');
+            const projectsSection = document.getElementById('projects');
+            const contactLink = document.getElementById('contact-link');
+            const contactSection = document.getElementById('contact');
+            
+            if (viewProjectsBtn && projectsSection) {
+                viewProjectsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    projectsSection.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                });
+            }
+            
+            if (contactLink && contactSection) {
+                contactLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    contactSection.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                });
+            }
+        });
+        
+        // スキルセクションのアニメーション
+        document.addEventListener('DOMContentLoaded', () => {
+            const skillCategories = document.querySelectorAll('.skill-category');
+            
+            // スクロールに応じてスキルカテゴリを表示
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translate(-50%, -50%) scale(1)';
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            skillCategories.forEach(category => {
+                category.style.opacity = 0;
+                category.style.transform = 'translate(-50%, -50%) scale(0.5)';
+                category.style.transition = 'all 0.5s ease-out';
+                observer.observe(category);
+            });
+            
+            // ナビゲーションバーのスクロール時の背景変更
+            const nav = document.querySelector('nav');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 100) {
+                    nav.style.background = 'linear-gradient(to right, rgba(26, 60, 139, 0.95), rgba(80, 200, 120, 0.85))';
+                    nav.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+                    nav.style.padding = '1rem 1.5rem';
+                } else {
+                    nav.style.background = 'linear-gradient(to right, rgba(26, 60, 139, 0.9), rgba(80, 200, 120, 0.8))';
+                    nav.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.1)';
+                    nav.style.padding = '1.5rem';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
