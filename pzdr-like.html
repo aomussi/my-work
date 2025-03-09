@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パズドラ風パズルゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+            margin: 0;
+            overflow: hidden;
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .game-container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(40, 44, 52, 0.85);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 
+                        0 0 30px rgba(79, 70, 229, 0.3);
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0) 70%);
+            z-index: -1;
+            animation: rotateBG 20s linear infinite;
+        }
+        
+        @keyframes rotateBG {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .game-header h1 {
+            font-size: 28px;
+            margin: 0;
+            background: linear-gradient(90deg, #4c1d95 0%, #8b5cf6 50%, #6366f1 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .battle-area {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            height: 140px;
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3), 
+                        0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .battle-area::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                        rgba(99, 102, 241, 0) 0%, 
+                        rgba(99, 102, 241, 0.5) 50%, 
+                        rgba(99, 102, 241, 0) 100%);
+        }
+
+        .player-monsters, .enemy-monsters {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 48%;
+            position: relative;
+        }
+        
+        .player-monsters::before, .enemy-monsters::before {
+            content: attr(data-label);
+            position: absolute;
+            top: -25px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .player-monsters::before {
+            content: 'Your Team';
+            left: 0;
+        }
+        
+        .enemy-monsters::before {
+            content: 'Enemy';
+            right: 0;
+            text-align: right;
+        }
+
+        .monster {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .monster::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, 
+                        rgba(255, 255, 255, 0.15), 
+                        rgba(255, 255, 255, 0));
+            border-radius: 10px 10px 0 0;
+            z-index: 0;
+        }
+        
+        .monster:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .monster-name {
+            color: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            font-size: 11px;
+            text-align: center;
+            font-weight: bold;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 0.5px;
+        }
+
+        .hp-bar {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        .hp-fill {
+            height: 100%;
+            transition: width 0.5s cubic-bezier(0.65, 0, 0.35, 1), 
+                       background-color 0.5s ease;
+            background-image: linear-gradient(90deg, 
+                              rgba(0, 0, 0, 0.2) 0%, 
+                              rgba(255, 255, 255, 0.2) 50%, 
+                              rgba(0, 0, 0, 0.2) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        #game-board {
+            background: rgba(24, 24, 37, 0.9);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            width: 100%;
+            height: auto;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6),
+                       0 5px 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #game-board::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.07) 0%, transparent 25%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .combo-display {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+            height: 50px;
+            color: gold;
+            text-shadow: 0 0 10px orange, 0 0 20px red;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .combo-animation {
+            animation: comboPopup 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes comboPopup {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            25% {
+                transform: scale(1.6);
+            }
+            50% {
+                transform: scale(1.3);
+            }
+            75% {
+                transform: scale(1.4);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 50%, #3730a3 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(79, 70, 229, 0.5);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(79, 70, 229, 0.3);
+        }
+        
+        button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.2) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transition: all 0.5s ease;
+        }
+        
+        button:hover::after {
+            left: 100%;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 10px;
+            padding: 15px 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .stat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+            background: rgba(35, 47, 67, 0.9);
+        }
+        
+        .stat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                        rgba(99, 102, 241, 0) 0%, 
+                        rgba(99, 102, 241, 0.7) 50%, 
+                        rgba(99, 102, 241, 0) 100%);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 300;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #a5b4fc 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .stat:nth-child(1) .stat-value {
+            background: linear-gradient(90deg, #fca5a5 0%, #f87171 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat:nth-child(2) .stat-value {
+            background: linear-gradient(90deg, #fde68a 0%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat:nth-child(3) .stat-value {
+            background: linear-gradient(90deg, #a7f3d0 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat:nth-child(4) .stat-value {
+            background: linear-gradient(90deg, #bfdbfe 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat-value.changed {
+            animation: pulse 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .enemy-attack {
+            position: absolute;
+            color: red;
+            font-weight: bold;
+            animation: flyFromRight 1.2s forwards;
+            font-size: 32px;
+            z-index: 10;
+            text-shadow: 0 0 10px crimson, 0 0 20px darkred;
+        }
+
+        @keyframes flyFromRight {
+            0% {
+                transform: translateX(100px) scale(0.8) rotate(-5deg);
+                opacity: 0;
+            }
+            25% {
+                transform: translateX(50px) scale(1.3) rotate(5deg);
+                opacity: 1;
+            }
+            75% {
+                transform: translateX(0px) scale(1.1) rotate(-3deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-70px) scale(0.9) rotate(2deg);
+                opacity: 0;
+            }
+        }
+
+        .damage-text {
+            position: absolute;
+            font-weight: bold;
+            animation: flyUp 1.5s forwards;
+            font-size: 28px;
+            z-index: 10;
+            text-shadow: 0 0 10px gold, 0 0 20px orange, 0 0 30px red;
+        }
+
+        @keyframes flyUp {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+            25% {
+                transform: translateY(-20px) scale(1.5);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-35px) scale(1.2);
+            }
+            100% {
+                transform: translateY(-80px) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        .attack-effect {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(255,0,0,0.8) 0%, rgba(255,0,0,0) 70%);
+            border-radius: 50%;
+            z-index: 5;
+            animation: pulse 0.8s ease-out;
+            pointer-events: none;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(0.1);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+        
+        .screen-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .screen-flash.active {
+            animation: screenFlash 0.3s;
+        }
+        
+        @keyframes screenFlash {
+            0% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.4;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+        
+        .game-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5),
+                        0 0 100px rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(147, 197, 253, 0.2);
+            animation: messageAppear 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 90%;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-message h2 {
+            margin-bottom: 24px;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            animation: glowingText 2s infinite;
+            background: linear-gradient(to right, #ffd700, #ffa700);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .game-message p {
+            font-size: 18px;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .game-message button {
+            margin-top: 25px;
+            padding: 14px 35px;
+            font-size: 18px;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .game-message button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+        }
+        
+        @keyframes messageAppear {
+            0% {
+                transform: translate(-50%, -50%) scale(0.7);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes glowingText {
+            0% {
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+            }
+            50% {
+                text-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 30px rgba(255, 165, 0, 0.8);
+            }
+            100% {
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+            }
+        }
+        
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 200;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: gold;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        
+        @keyframes hitFlash {
+            0% { filter: brightness(1); }
+            30% { filter: brightness(2); }
+            100% { filter: brightness(1); }
+        }
+        
+        @keyframes enemyShake {
+            0% { transform: translate3d(0, 0, 0); }
+            20% { transform: translate3d(-8px, 0, 0); }
+            40% { transform: translate3d(8px, 0, 0); }
+            60% { transform: translate3d(-5px, 0, 0); }
+            80% { transform: translate3d(5px, 0, 0); }
+            100% { transform: translate3d(0, 0, 0); }
+        }
+        
+        @keyframes attackLineAnim {
+            0% { transform: scaleX(0); opacity: 0; }
+            50% { transform: scaleX(1); opacity: 1; }
+            100% { transform: scaleX(1); opacity: 0; }
+        }
+        
+        @keyframes slashEffect {
+            0% { opacity: 0; }
+            10% { opacity: 0.8; }
+            30% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>パズドラ風パズルゲーム</h1>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">レベル</div>
+                <div class="stat-value" id="level">1</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">スコア</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">プレイヤーHP</div>
+                <div class="stat-value" id="player-hp">100</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">敵HP</div>
+                <div class="stat-value" id="enemy-hp">50</div>
+            </div>
+        </div>
+        
+        <div class="battle-area">
+            <div class="player-monsters">
+                <!-- Player monsters will be displayed here -->
+            </div>
+            <div class="enemy-monsters">
+                <!-- Enemy monsters will be displayed here -->
+            </div>
+        </div>
+        
+        <div class="combo-display" id="combo-display"></div>
+        
+        <canvas id="game-board" width="460" height="400"></canvas>
+        
+        <div class="game-controls">
+            <button id="start-button">ゲームスタート</button>
+        </div>
+    </div>
+
+    <div class="game-message" id="game-message">
+        <h2 id="message-title">レベルクリア!</h2>
+        <p id="message-text">次のレベルへ進みます。</p>
+        <button id="message-button">続ける</button>
+    </div>
+
+    <script>
+        
+        class GameBoard {
+            constructor(canvasId, rows = 5, cols = 6) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.rows = rows;
+                this.cols = cols;
+                this.orbSize = Math.min(this.canvas.width / this.cols, this.canvas.height / this.rows);
+                this.colors = ['red', 'blue', 'green', 'yellow', 'purple', 'pink'];
+                this.colorElements = {
+                    'red': 'fire',
+                    'blue': 'water',
+                    'green': 'wood',
+                    'yellow': 'light',
+                    'purple': 'dark',
+                    'pink': 'heart'
+                };
+                this.grid = [];
+                this.selectedOrb = null;
+                this.currentX = 0;
+                this.currentY = 0;
+                this.isDragging = false;
+                this.isAnimating = false;
+                this.onMatchesProcessed = null;
+                this.moveCount = 0;
+                
+                // Initialize event listeners
+                this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+                
+                // Touch support
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.initGrid();
+                this.render();
+            }
+            
+            initGrid() {
+                this.grid = [];
+                for (let y = 0; y < this.rows; y++) {
+                    const row = [];
+                    for (let x = 0; x < this.cols; x++) {
+                        const colorIndex = Math.floor(Math.random() * this.colors.length);
+                        row.push({
+                            color: this.colors[colorIndex],
+                            x: x,
+                            y: y
+                        });
+                    }
+                    this.grid.push(row);
+                }
+                
+                // Ensure no initial matches
+                while (this.hasMatches()) {
+                    this.shuffleGrid();
+                }
+            }
+            
+            shuffleGrid() {
+                for (let y = 0; y < this.rows; y++) {
+                    for (let x = 0; x < this.cols; x++) {
+                        const colorIndex = Math.floor(Math.random() * this.colors.length);
+                        this.grid[y][x].color = this.colors[colorIndex];
+                    }
+                }
+            }
+            
+            hasMatches() {
+                // Check horizontal matches
+                for (let y = 0; y < this.rows; y++) {
+                    let count = 1;
+                    let color = this.grid[y][0].color;
+                    
+                    for (let x = 1; x < this.cols; x++) {
+                        if (this.grid[y][x].color === color) {
+                            count++;
+                            if (count >= 3) return true;
+                        } else {
+                            count = 1;
+                            color = this.grid[y][x].color;
+                        }
+                    }
+                }
+                
+                // Check vertical matches
+                for (let x = 0; x < this.cols; x++) {
+                    let count = 1;
+                    let color = this.grid[0][x].color;
+                    
+                    for (let y = 1; y < this.rows; y++) {
+                        if (this.grid[y][x].color === color) {
+                            count++;
+                            if (count >= 3) return true;
+                        } else {
+                            count = 1;
+                            color = this.grid[y][x].color;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            // 共通のオーブ描画関数
+            drawOrb(x, y, color, size, alpha = 1.0) {
+                // 色の基本設定
+                let baseColor;
+                switch(color) {
+                    case 'red': baseColor = 'rgb(244, 67, 54)'; break;
+                    case 'blue': baseColor = 'rgb(33, 150, 243)'; break;
+                    case 'green': baseColor = 'rgb(76, 175, 80)'; break;
+                    case 'yellow': baseColor = 'rgb(255, 235, 59)'; break;
+                    case 'purple': baseColor = 'rgb(156, 39, 176)'; break;
+                    case 'pink': baseColor = 'rgb(233, 30, 99)'; break;
+                    default: baseColor = 'rgb(255, 255, 255)';
+                }
+                
+                // アルファ値を適用
+                const rgbaBaseColor = baseColor.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+                
+                // オーブの背後のグロー効果
+                if (alpha > 0.3) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size + 2, 0, Math.PI * 2);
+                    
+                    const glow = this.ctx.createRadialGradient(
+                        x, y, size / 3, x, y, size + 2
+                    );
+                    
+                    const glowAlpha = alpha * 0.1;
+                    glow.addColorStop(0, baseColor.replace(')', `, ${glowAlpha})`).replace('rgb', 'rgba'));
+                    glow.addColorStop(1, `rgba(0, 0, 0, 0)`);
+                    
+                    this.ctx.fillStyle = glow;
+                    this.ctx.fill();
+                }
+                
+                // オーブの本体
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, size, 0, Math.PI * 2);
+                
+                // 3D風グラデーション
+                const gradient = this.ctx.createRadialGradient(
+                    x - size / 4, y - size / 4, 0,
+                    x, y, size
+                );
+                
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+                gradient.addColorStop(0.3, rgbaBaseColor);
+                gradient.addColorStop(0.8, baseColor.replace(')', `, ${alpha * 0.8})`).replace('rgb', 'rgba'));
+                gradient.addColorStop(1, `rgba(0, 0, 0, ${alpha * 0.5})`);
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.fill();
+                
+                // オーブの境界線
+                this.ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+                
+                // 内側のハイライト効果（半透明時のみ）
+                if (alpha > 0.5) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size - 2, Math.PI * 0.7, Math.PI * 1.8);
+                    this.ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                }
+                
+                // エレメントアイコンを描画
+                if (alpha > 0.6) {
+                    let symbol;
+                    switch(this.colorElements[color]) {
+                        case 'fire': symbol = '🔥'; break;
+                        case 'water': symbol = '💧'; break;
+                        case 'wood': symbol = '🌿'; break;
+                        case 'light': symbol = '✨'; break;
+                        case 'dark': symbol = '🌑'; break;
+                        case 'heart': symbol = '❤️'; break;
+                        default: symbol = '?';
+                    }
+                    
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.font = 'bold 18px Arial';
+                    
+                    // ドロップシャドウ効果
+                    this.ctx.shadowColor = `rgba(0, 0, 0, ${alpha * 0.7})`;
+                    this.ctx.shadowBlur = 3;
+                    this.ctx.shadowOffsetX = 1;
+                    this.ctx.shadowOffsetY = 1;
+                    
+                    this.ctx.fillText(symbol, x, y);
+                    
+                    // シャドウをリセット
+                    this.ctx.shadowColor = 'transparent';
+                    this.ctx.shadowBlur = 0;
+                    this.ctx.shadowOffsetX = 0;
+                    this.ctx.shadowOffsetY = 0;
+                }
+            }    
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw subtle grid lines
+                this.ctx.strokeStyle = 'rgba(99, 102, 241, 0.1)';
+                this.ctx.lineWidth = 1;
+                
+                // Vertical grid lines
+                for (let x = 1; x < this.cols; x++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x * this.orbSize, 0);
+                    this.ctx.lineTo(x * this.orbSize, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                // Horizontal grid lines
+                for (let y = 1; y < this.rows; y++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y * this.orbSize);
+                    this.ctx.lineTo(this.canvas.width, y * this.orbSize);
+                    this.ctx.stroke();
+                }
+                
+                // Draw the grid
+                for (let y = 0; y < this.rows; y++) {
+                    for (let x = 0; x < this.cols; x++) {
+                        const orb = this.grid[y][x];
+                        const orbX = x * this.orbSize + this.orbSize / 2;
+                        const orbY = y * this.orbSize + this.orbSize / 2;
+                        
+                        // 共通の描画関数を使用
+                        this.drawOrb(orbX, orbY, orb.color, this.orbSize / 2 - 4);
+                    }
+                }
+                
+                // Draw selected orb (if dragging)
+                if (this.isDragging && this.selectedOrb) {
+                    // Draw trail effect
+                    if (this.previousPositions) {
+                        for (let i = 0; i < this.previousPositions.length; i++) {
+                            const pos = this.previousPositions[i];
+                            const alpha = 0.2 * (i / this.previousPositions.length);
+                            const size = this.orbSize / 3 * (i / this.previousPositions.length);
+                            
+                            this.ctx.beginPath();
+                            this.ctx.arc(
+                                pos.x, 
+                                pos.y, 
+                                size, 
+                                0, 
+                                Math.PI * 2
+                            );
+                            
+                            let trailColor;
+                            switch(this.selectedOrb.color) {
+                                case 'red': trailColor = 'rgba(244, 67, 54, ' + alpha + ')'; break;
+                                case 'blue': trailColor = 'rgba(33, 150, 243, ' + alpha + ')'; break;
+                                case 'green': trailColor = 'rgba(76, 175, 80, ' + alpha + ')'; break;
+                                case 'yellow': trailColor = 'rgba(255, 235, 59, ' + alpha + ')'; break;
+                                case 'purple': trailColor = 'rgba(156, 39, 176, ' + alpha + ')'; break;
+                                case 'pink': trailColor = 'rgba(233, 30, 99, ' + alpha + ')'; break;
+                                default: trailColor = 'rgba(255, 255, 255, ' + alpha + ')';
+                            }
+                            
+                            this.ctx.fillStyle = trailColor;
+                            this.ctx.fill();
+                        }
+                    }
+                    
+                    // Update position history
+                    if (!this.previousPositions) {
+                        this.previousPositions = [];
+                    }
+                    
+                    this.previousPositions.unshift({x: this.currentX, y: this.currentY});
+                    if (this.previousPositions.length > 10) {
+                        this.previousPositions.pop();
+                    }
+                    
+                    // Draw glow effect behind dragged orb
+                    this.ctx.beginPath();
+                    this.ctx.arc(
+                        this.currentX, 
+                        this.currentY, 
+                        this.orbSize / 1.5, 
+                        0, 
+                        Math.PI * 2
+                    );
+                    
+                    let baseColor;
+                    switch(this.selectedOrb.color) {
+                        case 'red': baseColor = 'rgb(244, 67, 54)'; break;
+                        case 'blue': baseColor = 'rgb(33, 150, 243)'; break;
+                        case 'green': baseColor = 'rgb(76, 175, 80)'; break;
+                        case 'yellow': baseColor = 'rgb(255, 235, 59)'; break;
+                        case 'purple': baseColor = 'rgb(156, 39, 176)'; break;
+                        case 'pink': baseColor = 'rgb(233, 30, 99)'; break;
+                        default: baseColor = 'rgb(255, 255, 255)';
+                    }
+                    
+                    const glow = this.ctx.createRadialGradient(
+                        this.currentX, 
+                        this.currentY,
+                        0,
+                        this.currentX,
+                        this.currentY,
+                        this.orbSize / 1.5
+                    );
+                    
+                    glow.addColorStop(0.4, baseColor.replace(')', ', 0.3)').replace('rgb', 'rgba'));
+                    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    
+                    this.ctx.fillStyle = glow;
+                    this.ctx.fill();
+                    
+                    // 共通の描画関数を使用
+                    this.drawOrb(this.currentX, this.currentY, this.selectedOrb.color, this.orbSize / 2 - 2);
+                    
+                    // 選択中のオーブのグロー効果を強調（共通関数の後に追加）
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.shadowColor = baseColor;
+                    this.ctx.shadowBlur = 10;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(
+                        this.currentX, 
+                        this.currentY, 
+                        this.orbSize / 2 - 2, 
+                        0, 
+                        Math.PI * 2
+                    );
+                    this.ctx.stroke();
+                    
+                    // Reset shadow
+                    this.ctx.shadowColor = 'transparent';
+                    this.ctx.shadowBlur = 0;
+                } else {
+                    // Clear tracking when not dragging
+                    this.previousPositions = null;
+                }
+            }
+            
+            handleMouseDown(e) {
+                if (this.isAnimating) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.orbSize);
+                const y = Math.floor((e.clientY - rect.top) / this.orbSize);
+                
+                if (x >= 0 && x < this.cols && y >= 0 && y < this.rows) {
+                    this.selectedOrb = this.grid[y][x];
+                    this.currentX = x * this.orbSize + this.orbSize / 2;
+                    this.currentY = y * this.orbSize + this.orbSize / 2;
+                    this.isDragging = true;
+                    this.moveCount = 0;
+                }
+            }
+            
+            handleMouseMove(e) {
+                if (!this.isDragging || this.isAnimating) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                this.currentX = e.clientX - rect.left;
+                this.currentY = e.clientY - rect.top;
+                
+                // Calculate grid position
+                const x = Math.floor(this.currentX / this.orbSize);
+                const y = Math.floor(this.currentY / this.orbSize);
+                
+                // If moved to a different orb, swap them
+                if (x >= 0 && x < this.cols && y >= 0 && y < this.rows) {
+                    if (this.selectedOrb.x !== x || this.selectedOrb.y !== y) {
+                        // Only allow adjacent moves
+                        const dx = Math.abs(this.selectedOrb.x - x);
+                        const dy = Math.abs(this.selectedOrb.y - y);
+                        
+                        if (dx + dy === 1) {
+                            this.moveCount++;
+                            const targetOrb = this.grid[y][x];
+                            
+                            // Swap in grid
+                            this.grid[this.selectedOrb.y][this.selectedOrb.x] = targetOrb;
+                            this.grid[y][x] = this.selectedOrb;
+                            
+                            // Update positions
+                            [this.selectedOrb.x, targetOrb.x] = [targetOrb.x, this.selectedOrb.x];
+                            [this.selectedOrb.y, targetOrb.y] = [targetOrb.y, this.selectedOrb.y];
+                            
+                            // Update selected orb
+                            this.selectedOrb = this.grid[y][x];
+                        }
+                    }
+                }
+                
+                this.render();
+            }
+            
+            handleMouseUp(e) {
+                if (!this.isDragging || this.isAnimating) return;
+                
+                this.isDragging = false;
+                this.selectedOrb = null;
+                
+                // Check for matches
+                this.checkMatches();
+            }
+            
+            checkMatches() {
+                this.isAnimating = true;
+                
+                // Find matches using the updated findMatches method
+                const { allMatched, comboGroups } = this.findMatches();
+                
+                // Process matches if any
+                if (allMatched.size > 0) {
+                    // Store combo groups for sequential processing
+                    this.currentComboGroups = comboGroups;
+                    this.currentComboIndex = 0;
+                    this.totalCombos = comboGroups.length;
+                    
+                    // Start processing the first combo
+                    this.processNextCombo();
+                } else {
+                    this.isAnimating = false;
+                    
+                    // If no matches and this was after player's turn
+                    // switch to enemy turn
+                    if (this.onMatchesProcessed) {
+                        this.onMatchesProcessed(0, {});
+                    }
+                }
+                
+                this.render();
+            }
+            
+            processNextCombo() {
+                if (this.currentComboIndex < this.currentComboGroups.length) {
+                    const combo = this.currentComboGroups[this.currentComboIndex];
+                    this.animateMatch(combo.orbs, () => {
+                        // Process this combo
+                        this.processCombo(combo, this.currentComboIndex + 1);
+                    });
+                } else {
+                    // All combos processed, check for new matches (cascades)
+                    const { allMatched, comboGroups } = this.findMatches();
+                    
+                    if (allMatched.size > 0) {
+                        // Keep current combo count when starting cascades
+                        const previousTotalCombos = this.totalCombos;
+                        
+                        this.currentComboGroups = comboGroups;
+                        this.currentComboIndex = 0;
+                        
+                        // Update total combos for overall tracking, but maintain sequential numbering
+                        this.totalCombos = previousTotalCombos + comboGroups.length;
+                        
+                        this.processNextCombo();
+                    } else {
+                        this.isAnimating = false;
+                        
+                        // Call callback when all matches and cascades are processed
+                        if (this.onMatchesProcessed) {
+                            this.onMatchesProcessed(this.totalCombos, this.matchesByColor);
+                        }
+                    }
+                }
+            }
+            
+            animateMatch(matched, callback) {
+                const animationFrames = 15;
+                let currentFrame = 0;
+                
+                // Create flash effect for matches
+                const flash = document.createElement('div');
+                flash.className = 'screen-flash';
+                document.body.appendChild(flash);
+                
+                // Trigger flash animation
+                setTimeout(() => {
+                    flash.classList.add('active');
+                    setTimeout(() => {
+                        flash.classList.remove('active');
+                        document.body.removeChild(flash);
+                    }, 300);
+                }, 0);
+                
+                const animate = () => {
+                    this.render();
+                    
+                    // Draw matched orbs with advanced animation
+                    matched.forEach(coord => {
+                        const [y, x] = coord.split(',').map(Number);
+                        const orb = this.grid[y][x];
+                        const orbX = x * this.orbSize + this.orbSize / 2;
+                        const orbY = y * this.orbSize + this.orbSize / 2;
+                        
+                        // Shrink the orb as animation progresses
+                        const animationProgress = currentFrame / animationFrames;
+                        let radius = (1 - animationProgress) * (this.orbSize / 2 - 2);
+                        
+                        // Add pulsating effect
+                        if (animationProgress < 0.3) {
+                            radius *= (1 + Math.sin(animationProgress * 10) * 0.2);
+                        }
+                        
+                        // 共通の描画関数を使用
+                        this.drawOrb(orbX, orbY, orb.color, radius, 1 - animationProgress * 0.5);
+                        
+                        // Add particles effect (追加のエフェクト)
+                        if (currentFrame % 3 === 0 && currentFrame < animationFrames * 0.7) {
+                            for (let i = 0; i < 2; i++) {
+                                const particleX = orbX + (Math.random() - 0.5) * this.orbSize;
+                                const particleY = orbY + (Math.random() - 0.5) * this.orbSize;
+                                const particleSize = 2 + Math.random() * 3;
+                                
+                                this.ctx.beginPath();
+                                this.ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+                                this.ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.8 - animationProgress) + ')';
+                                this.ctx.fill();
+                            }
+                        }
+                    });
+                    
+                    currentFrame++;
+                    
+                    if (currentFrame <= animationFrames) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        if (callback) callback();
+                    }
+                };
+                
+                animate();
+            }
+            
+            animateFallingOrbs(callback) {
+                const animationFrames = 15;
+                let currentFrame = 0;
+                
+                // Store initial positions for animation
+                const initialPositions = {};
+                
+                for (let y = 0; y < this.rows; y++) {
+                    for (let x = 0; x < this.cols; x++) {
+                        initialPositions[`${y},${x}`] = {
+                            startY: (y - this.grid[y][x].y) * this.orbSize,
+                            endY: 0
+                        };
+                    }
+                }
+                
+                const animate = () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Draw the grid with animation
+                    for (let y = 0; y < this.rows; y++) {
+                        for (let x = 0; x < this.cols; x++) {
+                            const orb = this.grid[y][x];
+                            const orbX = x * this.orbSize;
+                            
+                            // Calculate animated Y position
+                            const position = initialPositions[`${y},${x}`];
+                            const animationProgress = currentFrame / animationFrames;
+                            const orbY = y * this.orbSize - (position.startY * (1 - animationProgress));
+                            
+                            // Draw orb
+                            this.ctx.beginPath();
+                            this.ctx.arc(
+                                orbX + this.orbSize / 2, 
+                                orbY + this.orbSize / 2, 
+                                this.orbSize / 2 - 2, 
+                                0, 
+                                Math.PI * 2
+                            );
+                            
+                            let baseColor;
+                            switch(orb.color) {
+                                case 'red': baseColor = 'rgb(244, 67, 54)'; break;
+                                case 'blue': baseColor = 'rgb(33, 150, 243)'; break;
+                                case 'green': baseColor = 'rgb(76, 175, 80)'; break;
+                                case 'yellow': baseColor = 'rgb(255, 235, 59)'; break;
+                                case 'purple': baseColor = 'rgb(156, 39, 176)'; break;
+                                case 'pink': baseColor = 'rgb(233, 30, 99)'; break;
+                                default: baseColor = 'rgb(255, 255, 255)';
+                            }
+                            
+                            // Create gradient
+                            const gradient = this.ctx.createRadialGradient(
+                                orbX + this.orbSize / 2 - 5, 
+                                orbY + this.orbSize / 2 - 5,
+                                0,
+                                orbX + this.orbSize / 2,
+                                orbY + this.orbSize / 2,
+                                this.orbSize / 2
+                            );
+                            
+                            gradient.addColorStop(0, '#ffffff');
+                            gradient.addColorStop(0.4, baseColor);
+                            gradient.addColorStop(1, '#000000');
+                            
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fill();
+                            this.ctx.strokeStyle = '#ffffff';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.stroke();
+                            
+                            // Add element icon/symbol
+                            this.ctx.fillStyle = '#ffffff';
+                            this.ctx.textAlign = 'center';
+                            this.ctx.textBaseline = 'middle';
+                            this.ctx.font = '16px Arial';
+                            
+                            let symbol;
+                            switch(this.colorElements[orb.color]) {
+                                case 'fire': symbol = '🔥'; break;
+                                case 'water': symbol = '💧'; break;
+                                case 'wood': symbol = '🌿'; break;
+                                case 'light': symbol = '✨'; break;
+                                case 'dark': symbol = '🌑'; break;
+                                case 'heart': symbol = '❤️'; break;
+                                default: symbol = '?';
+                            }
+                            
+                            this.ctx.fillText(
+                                symbol,
+                                orbX + this.orbSize / 2,
+                                orbY + this.orbSize / 2
+                            );
+                        }
+                    }
+                    
+                    currentFrame++;
+                    
+                    if (currentFrame <= animationFrames) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        this.render();
+                        if (callback) callback();
+                    }
+                };
+                
+                animate();
+            }
+            
+            processCombo(combo, comboNumber) {
+                // Store combo color for damage calculation
+                if (!this.matchesByColor) {
+                    this.matchesByColor = {};
+                }
+                
+                const color = combo.color;
+                if (!this.matchesByColor[color]) {
+                    this.matchesByColor[color] = 0;
+                }
+                this.matchesByColor[color] += combo.orbs.size;
+                
+                // Calculate score for this combo
+                const score = combo.orbs.size * 100;
+                const scoreElement = document.getElementById('score');
+                scoreElement.textContent = parseInt(scoreElement.textContent) + score;
+                
+                // Get actual combo number from total cascade sequence
+                // This ensures combo numbers keep increasing even during cascades
+                const actualComboNumber = this.currentComboIndex + 1 + 
+                    (this.totalCombos - this.currentComboGroups.length);
+                
+                // Show current combo count
+                const comboDisplay = document.getElementById('combo-display');
+                
+                // Clear previous animation
+                comboDisplay.classList.remove('combo-animation');
+                void comboDisplay.offsetWidth; // Trigger reflow
+                
+                // Set new text with larger font size for bigger combos
+                comboDisplay.style.fontSize = `${Math.min(24 + actualComboNumber * 2, 42)}px`;
+                comboDisplay.textContent = `${actualComboNumber} コンボ!`;
+                
+                // Add animation class
+                comboDisplay.classList.add('combo-animation');
+                
+                // Change color based on combo count
+                if (actualComboNumber >= 8) {
+                    comboDisplay.style.color = '#ff0000';
+                    comboDisplay.style.textShadow = '0 0 15px #ff0000, 0 0 25px #ff9900, 0 0 35px #ffff00';
+                } else if (actualComboNumber >= 5) {
+                    comboDisplay.style.color = '#ff9900';
+                    comboDisplay.style.textShadow = '0 0 15px #ff9900, 0 0 25px #ffff00';
+                } else {
+                    comboDisplay.style.color = 'gold';
+                    comboDisplay.style.textShadow = '0 0 10px orange, 0 0 20px red';
+                }
+                
+                // For orbs in this combo, calculate single color damage
+                if (this.onComboProcessed) {
+                    // Pass the actual combo number to the handler
+                    this.onComboProcessed(combo, actualComboNumber);
+                }
+                
+                // Clear matched orbs and add new ones
+                combo.orbs.forEach(coord => {
+                    const [y, x] = coord.split(',').map(Number);
+                    
+                    // Move orbs down
+                    for (let i = y; i > 0; i--) {
+                        this.grid[i][x] = this.grid[i - 1][x];
+                        this.grid[i][x].y = i;
+                    }
+                    
+                    // Add new orb at top
+                    const colorIndex = Math.floor(Math.random() * this.colors.length);
+                    this.grid[0][x] = {
+                        color: this.colors[colorIndex],
+                        x: x,
+                        y: 0
+                    };
+                });
+                
+                // Animate falling orbs
+                this.animateFallingOrbs(() => {
+                    // Move to next combo
+                    this.currentComboIndex++;
+                    
+                    // Wait a bit before processing next combo for better visual effect
+                    setTimeout(() => {
+                        this.processNextCombo();
+                    }, 400);
+                });
+            }
+            
+            findMatches() {
+                // Store matches as separate combo groups
+                const comboGroups = [];
+                
+                // Check horizontal matches
+                for (let y = 0; y < this.rows; y++) {
+                    let count = 1;
+                    let color = this.grid[y][0].color;
+                    
+                    for (let x = 1; x < this.cols; x++) {
+                        if (this.grid[y][x].color === color) {
+                            count++;
+                        } else {
+                            if (count >= 3) {
+                                // Create new combo group
+                                const combo = {
+                                    orbs: new Set(),
+                                    color: color
+                                };
+                                
+                                // Add matched orbs to this combo
+                                for (let i = x - count; i < x; i++) {
+                                    combo.orbs.add(`${y},${i}`);
+                                }
+                                
+                                comboGroups.push(combo);
+                            }
+                            count = 1;
+                            color = this.grid[y][x].color;
+                        }
+                    }
+                    
+                    // Check end of row
+                    if (count >= 3) {
+                        const combo = {
+                            orbs: new Set(),
+                            color: color
+                        };
+                        
+                        for (let i = this.cols - count; i < this.cols; i++) {
+                            combo.orbs.add(`${y},${i}`);
+                        }
+                        
+                        comboGroups.push(combo);
+                    }
+                }
+                
+                // Check vertical matches
+                for (let x = 0; x < this.cols; x++) {
+                    let count = 1;
+                    let color = this.grid[0][x].color;
+                    
+                    for (let y = 1; y < this.rows; y++) {
+                        if (this.grid[y][x].color === color) {
+                            count++;
+                        } else {
+                            if (count >= 3) {
+                                // Create new combo group
+                                const combo = {
+                                    orbs: new Set(),
+                                    color: color
+                                };
+                                
+                                // Add matched orbs to this combo
+                                for (let i = y - count; i < y; i++) {
+                                    combo.orbs.add(`${i},${x}`);
+                                }
+                                
+                                comboGroups.push(combo);
+                            }
+                            count = 1;
+                            color = this.grid[y][x].color;
+                        }
+                    }
+                    
+                    // Check end of column
+                    if (count >= 3) {
+                        const combo = {
+                            orbs: new Set(),
+                            color: color
+                        };
+                        
+                        for (let i = this.rows - count; i < this.rows; i++) {
+                            combo.orbs.add(`${i},${x}`);
+                        }
+                        
+                        comboGroups.push(combo);
+                    }
+                }
+                
+                // For backward compatibility, also return a combined set of all matches
+                const allMatched = new Set();
+                comboGroups.forEach(combo => {
+                    combo.orbs.forEach(orb => {
+                        allMatched.add(orb);
+                    });
+                });
+                
+                return {
+                    allMatched,
+                    comboGroups
+                };
+            }
+            
+            showDamageText(damage, comboText = '', isTotal = false, comboNumber = 1) {
+                // Create screen shake effect for total damage only
+                if (isTotal) {
+                    const gameContainer = document.querySelector('.game-container');
+                    gameContainer.style.animation = 'none';
+                    void gameContainer.offsetWidth; // Trigger reflow
+                    gameContainer.style.animation = 'shake 0.5s cubic-bezier(.36,.07,.19,.97)';
+                }
+                
+                // Create damage text
+                const damageText = document.createElement('div');
+                damageText.className = 'damage-text';
+                
+                if (isTotal) {
+                    // Bigger, more dramatic for total damage
+                    damageText.style.color = '#FF5722'; // Deep Orange
+                    damageText.style.fontSize = '48px';
+                    damageText.style.fontWeight = 'bold';
+                    damageText.innerHTML = `${damage}<br><span style="font-size: 22px;">${comboText}</span>`;
+                    damageText.style.textShadow = '0 0 15px red, 0 0 25px orange, 0 0 35px yellow';
+                } else {
+                    // Color depends on combo number
+                    const colors = ['#FFC107', '#FF9800', '#FF5722', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3'];
+                    const colorIndex = Math.min(comboNumber - 1, colors.length - 1);
+                    
+                    damageText.style.color = colors[colorIndex];
+                    damageText.style.fontSize = `${Math.min(28 + comboNumber * 2, 42)}px`;
+                    
+                    if (comboText) {
+                        damageText.innerHTML = `${damage}<br><span style="font-size: 16px;">${comboText}</span>`;
+                    } else {
+                        damageText.textContent = damage;
+                    }
+                }
+                
+                // Position near enemy with slight randomization
+                const enemyArea = document.querySelector('.enemy-monsters');
+                const rect = enemyArea.getBoundingClientRect();
+                
+                const randomOffsetX = (Math.random() - 0.5) * 60;
+                const randomOffsetY = (Math.random() - 0.5) * 40;
+                
+                damageText.style.left = `${rect.left + rect.width / 2 + randomOffsetX}px`;
+                damageText.style.top = `${rect.top + rect.height / 2 + randomOffsetY}px`;
+                
+                document.body.appendChild(damageText);
+                
+                // Remove after animation completes
+                setTimeout(() => {
+                    document.body.removeChild(damageText);
+                }, isTotal ? 2000 : 1500);
+                
+                // Add hit flash effect on enemy and impact for total or first combo only
+                if (isTotal || comboNumber <= 1) {
+                    const enemyMonster = document.querySelector('.enemy-monsters .monster');
+                    if (enemyMonster) {
+                        enemyMonster.style.animation = 'none';
+                        void enemyMonster.offsetWidth; // Trigger reflow
+                        enemyMonster.style.animation = 'hitFlash 0.3s';
+                    }
+                    
+                    // Add impact effect
+                    const impact = document.createElement('div');
+                    impact.className = 'attack-effect';
+                    
+                    if (isTotal) {
+                        // Bigger impact for total damage
+                        impact.style.width = '150px';
+                        impact.style.height = '150px';
+                        impact.style.background = 'radial-gradient(circle, rgba(255,0,0,0.9) 0%, rgba(255,0,0,0) 70%)';
+                    }
+                    
+                    impact.style.left = `${rect.left + rect.width / 2 - (isTotal ? 75 : 50)}px`;
+                    impact.style.top = `${rect.top + rect.height / 2 - (isTotal ? 75 : 50)}px`;
+                    
+                    document.body.appendChild(impact);
+                    
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        document.body.removeChild(impact);
+                    }, isTotal ? 1200 : 800);
+                }
+            }
+            
+            showEnemyAttack(callback) {
+                // Create screen shake effect
+                const gameContainer = document.querySelector('.game-container');
+                gameContainer.style.animation = 'none';
+                void gameContainer.offsetWidth; // Trigger reflow
+                gameContainer.style.animation = 'enemyShake 0.7s cubic-bezier(.36,.07,.19,.97)';
+                
+                // Create attack text with random rotation
+                const attackText = document.createElement('div');
+                attackText.className = 'enemy-attack';
+                attackText.textContent = '攻撃!';
+                
+                // Position near enemy
+                const enemyArea = document.querySelector('.enemy-monsters');
+                const playerArea = document.querySelector('.player-monsters');
+                
+                const enemyRect = enemyArea.getBoundingClientRect();
+                const playerRect = playerArea.getBoundingClientRect();
+                
+                attackText.style.left = `${enemyRect.right - 50}px`;
+                attackText.style.top = `${(enemyRect.top + playerRect.top) / 2}px`;
+                
+                document.body.appendChild(attackText);
+                
+                // Add enemy attack effect line
+                const attackLine = document.createElement('div');
+                attackLine.style.position = 'absolute';
+                attackLine.style.top = `${(enemyRect.top + enemyRect.bottom) / 2}px`;
+                attackLine.style.left = `${enemyRect.right}px`;
+                attackLine.style.width = `${playerRect.left - enemyRect.right}px`;
+                attackLine.style.height = '3px';
+                attackLine.style.backgroundColor = 'red';
+                attackLine.style.zIndex = '5';
+                attackLine.style.transformOrigin = 'left center';
+                attackLine.style.animation = 'attackLineAnim 0.3s forwards';
+                
+                document.body.appendChild(attackLine);
+                
+                // Add slashing effect
+                const slash = document.createElement('div');
+                slash.style.position = 'absolute';
+                slash.style.top = `${playerRect.top}px`;
+                slash.style.left = `${playerRect.left}px`;
+                slash.style.width = `${playerRect.width}px`;
+                slash.style.height = `${playerRect.height}px`;
+                slash.style.backgroundImage = 'linear-gradient(45deg, transparent 45%, red 45%, red 55%, transparent 55%)';
+                slash.style.backgroundSize = '20px 20px';
+                slash.style.opacity = '0';
+                slash.style.zIndex = '15';
+                slash.style.animation = 'slashEffect 0.5s forwards';
+                slash.style.animationDelay = '0.3s';
+                
+                document.body.appendChild(slash);
+                
+                // Add impact effect on player
+                const playerMonster = document.querySelector('.player-monsters .monster');
+                if (playerMonster) {
+                    setTimeout(() => {
+                        playerMonster.style.animation = 'none';
+                        void playerMonster.offsetWidth; // Trigger reflow
+                        playerMonster.style.animation = 'hitFlash 0.3s';
+                        
+                        // Add hit effect
+                        const hit = document.createElement('div');
+                        hit.className = 'attack-effect';
+                        hit.style.backgroundColor = 'rgba(255,0,0,0.6)';
+                        
+                        const playerRect = playerMonster.getBoundingClientRect();
+                        
+                        hit.style.left = `${playerRect.left + playerRect.width / 2 - 50}px`;
+                        hit.style.top = `${playerRect.top + playerRect.height / 2 - 50}px`;
+                        
+                        document.body.appendChild(hit);
+                        
+                        // Remove hit effect after animation completes
+                        setTimeout(() => {
+                            document.body.removeChild(hit);
+                        }, 800);
+                    }, 400);
+                }
+                
+                // Remove elements after animation completes and call callback
+                setTimeout(() => {
+                    document.body.removeChild(attackText);
+                    document.body.removeChild(attackLine);
+                    document.body.removeChild(slash);
+                    if (callback) callback();
+                }, 1200);
+            }
+            
+            createVictoryParticles() {
+                // Create container for particles if it doesn't exist
+                let particlesContainer = document.querySelector('.particles-container');
+                if (!particlesContainer) {
+                    particlesContainer = document.createElement('div');
+                    particlesContainer.className = 'particles-container';
+                    document.body.appendChild(particlesContainer);
+                }
+                
+                // First, create a flash effect
+                const flash = document.createElement('div');
+                flash.className = 'screen-flash';
+                document.body.appendChild(flash);
+                flash.classList.add('active');
+                
+                setTimeout(() => {
+                    document.body.removeChild(flash);
+                    
+                    // Create explosion of particles
+                    const enemyArea = document.querySelector('.enemy-monsters');
+                    const rect = enemyArea.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    
+                    // Create various particle types for more interesting effects
+                    // Standard particles
+                    for (let i = 0; i < 30; i++) {
+                        this.createParticle(particlesContainer, centerX, centerY, 'circle');
+                    }
+                    
+                    // Star particles
+                    for (let i = 0; i < 15; i++) {
+                        this.createParticle(particlesContainer, centerX, centerY, 'star');
+                    }
+                    
+                    // Line particles
+                    for (let i = 0; i < 20; i++) {
+                        this.createParticle(particlesContainer, centerX, centerY, 'line');
+                    }
+                    
+                    // Ring effect
+                    const ring = document.createElement('div');
+                    ring.style.position = 'absolute';
+                    ring.style.width = '10px';
+                    ring.style.height = '10px';
+                    ring.style.borderRadius = '50%';
+                    ring.style.border = '3px solid white';
+                    ring.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.7)';
+                    ring.style.left = `${centerX}px`;
+                    ring.style.top = `${centerY}px`;
+                    ring.style.transform = 'translate(-50%, -50%)';
+                    ring.style.animation = 'ring-expand 0.8s ease-out forwards';
+                    
+                    // Apply animation using keyframes
+                    const ringStyle = document.createElement('style');
+                    ringStyle.textContent = `
+                        @keyframes ring-expand {
+                            0% {
+                                width: 10px;
+                                height: 10px;
+                                opacity: 1;
+                            }
+                            100% {
+                                width: 300px;
+                                height: 300px;
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                    document.head.appendChild(ringStyle);
+                    
+                    particlesContainer.appendChild(ring);
+                    
+                    // Remove ring and style element after animation
+                    setTimeout(() => {
+                        if (particlesContainer.contains(ring)) {
+                            particlesContainer.removeChild(ring);
+                        }
+                        document.head.removeChild(ringStyle);
+                    }, 800);
+                    
+                    // Add more particles over time for a continuous effect
+                    let count = 0;
+                    const interval = setInterval(() => {
+                        for (let i = 0; i < 5; i++) {
+                            const type = Math.random() < 0.3 ? 'star' : (Math.random() < 0.5 ? 'line' : 'circle');
+                            this.createParticle(particlesContainer, centerX, centerY, type);
+                        }
+                        
+                        count++;
+                        if (count >= 10) {
+                            clearInterval(interval);
+                        }
+                    }, 100);
+                }, 300);
+            }
+            
+            createParticle(container, x, y, type = 'circle') {
+                const particle = document.createElement('div');
+                
+                // Set basic styles based on particle type
+                if (type === 'circle') {
+                    particle.className = 'particle';
+                    
+                    // Random size
+                    const size = 3 + Math.random() * 10;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    particle.style.borderRadius = '50%';
+                    
+                } else if (type === 'star') {
+                    // Create star shape using clip-path
+                    particle.style.position = 'absolute';
+                    const size = 8 + Math.random() * 15;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    particle.style.clipPath = 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
+                    
+                } else if (type === 'line') {
+                    // Create line particles
+                    particle.style.position = 'absolute';
+                    const length = 10 + Math.random() * 20;
+                    const width = 1 + Math.random() * 3;
+                    particle.style.width = `${length}px`;
+                    particle.style.height = `${width}px`;
+                    particle.style.borderRadius = `${width / 2}px`;
+                }
+                
+                // Random color with enhanced palette
+                const colors = [
+                    '#FFC107', '#FF9800', '#FF5722', // Orange/amber
+                    '#F44336', '#E91E63', '#9C27B0', // Red/pink/purple
+                    '#FFEB3B', '#CDDC39', '#8BC34A', // Yellow/lime/green
+                    '#03A9F4', '#00BCD4', '#009688', // Blue/cyan/teal
+                    '#9C27B0', '#673AB7', '#3F51B5'  // Purple/deep purple/indigo
+                ];
+                
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.backgroundColor = color;
+                
+                // Add glow effect
+                particle.style.boxShadow = `0 0 6px ${color}`;
+                
+                // Random position offset
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 20 + Math.random() * 80;
+                const startX = x;
+                const startY = y;
+                
+                // Random rotation for non-circle particles
+                if (type !== 'circle') {
+                    const rotation = Math.random() * 360;
+                    particle.style.transform = `rotate(${rotation}deg)`;
+                }
+                
+                // Starting position
+                particle.style.left = `${startX}px`;
+                particle.style.top = `${startY}px`;
+                
+                // Add to container
+                container.appendChild(particle);
+                
+                // Random animation
+                const duration = 1 + Math.random() * 2;
+                const delay = Math.random() * 0.5;
+                
+                particle.style.animation = `particle-move-${type} ${duration}s ease-out ${delay}s`;
+                
+                // Create the animation dynamically
+                const style = document.createElement('style');
+                const targetX = startX + Math.cos(angle) * distance * (0.5 + Math.random());
+                const targetY = startY + Math.sin(angle) * distance - (100 + Math.random() * 200); // Extra upward motion
+                
+                // Different animation based on particle type
+                if (type === 'circle') {
+                    style.textContent = `
+                        @keyframes particle-move-circle {
+                            0% {
+                                transform: translate(0, 0) scale(0.5);
+                                opacity: 0;
+                            }
+                            10% {
+                                opacity: 1;
+                            }
+                            90% {
+                                opacity: 0.8;
+                            }
+                            100% {
+                                transform: translate(${targetX - startX}px, ${targetY - startY}px) scale(0);
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                } else if (type === 'star') {
+                    const finalRotation = Math.random() * 720 - 360; // Random rotation (-360 to 360 degrees)
+                    style.textContent = `
+                        @keyframes particle-move-star {
+                            0% {
+                                transform: translate(0, 0) scale(0.5) rotate(0deg);
+                                opacity: 0;
+                            }
+                            10% {
+                                opacity: 1;
+                                transform: translate(0, 0) scale(1) rotate(0deg);
+                            }
+                            90% {
+                                opacity: 0.8;
+                            }
+                            100% {
+                                transform: translate(${targetX - startX}px, ${targetY - startY}px) scale(0.2) rotate(${finalRotation}deg);
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                } else if (type === 'line') {
+                    style.textContent = `
+                        @keyframes particle-move-line {
+                            0% {
+                                transform: translate(0, 0) rotate(${Math.random() * 360}deg);
+                                opacity: 0;
+                            }
+                            10% {
+                                opacity: 1;
+                            }
+                            90% {
+                                opacity: 0.8;
+                            }
+                            100% {
+                                transform: translate(${targetX - startX}px, ${targetY - startY}px) rotate(${Math.random() * 360 + 180}deg);
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                }
+                
+                document.head.appendChild(style);
+                
+                // Remove particle after animation
+                setTimeout(() => {
+                    if (container.contains(particle)) {
+                        container.removeChild(particle);
+                    }
+                    document.head.removeChild(style);
+                }, (duration + delay) * 1000);
+            }
+        }
+
+        class Monster {
+            constructor(type, hp, atk, element, rarity = 1) {
+                this.type = type;
+                this.hp = hp;
+                this.maxHp = hp;
+                this.atk = atk;
+                this.element = element;
+                this.rarity = rarity;
+            }
+            
+            attack() {
+                return this.atk;
+            }
+            
+            takeDamage(amount) {
+                this.hp = Math.max(0, this.hp - amount);
+                return this.hp <= 0;
+            }
+            
+            heal(amount) {
+                this.hp = Math.min(this.maxHp, this.hp + amount);
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.gameBoard = new GameBoard('game-board');
+                this.currentLevel = 1;
+                this.playerTeam = [
+                    new Monster('ドラゴン', 100, 20, 'red', 3),
+                    new Monster('ヒーラー', 80, 15, 'pink', 2),
+                    new Monster('アタッカー', 60, 25, 'green', 2)
+                ];
+                this.enemy = null;
+                this.playerMonsterUIs = [];
+                this.enemyMonsterUI = null;
+                this.isPlayerTurn = true;
+                this.currentCombo = 0;
+                this.accumulatedDamage = 0;
+                this.healAmount = 0;
+                
+                this.initGame();
+                
+                document.getElementById('start-button').addEventListener('click', () => {
+                    this.initGame();
+                });
+                
+                document.getElementById('message-button').addEventListener('click', () => {
+                    document.getElementById('game-message').style.display = 'none';
+                });
+            }
+            
+            initGame() {
+                // Clear monster display
+                document.querySelector('.player-monsters').innerHTML = '';
+                document.querySelector('.enemy-monsters').innerHTML = '';
+                
+                // Update level display
+                document.getElementById('level').textContent = this.currentLevel;
+                
+                // Create player monster UI
+                this.playerMonsterUIs = this.playerTeam.map(monster => this.createMonsterElement(monster, true));
+                
+                // Create enemy based on level
+                this.enemy = this.createEnemy(this.currentLevel);
+                this.enemyMonsterUI = this.createMonsterElement(this.enemy, false);
+                
+                // Reset HP displays
+                document.getElementById('player-hp').textContent = 
+                    this.playerTeam.reduce((total, monster) => total + monster.hp, 0);
+                document.getElementById('enemy-hp').textContent = this.enemy.hp;
+                
+                // Reset score
+                document.getElementById('score').textContent = '0';
+                
+                // Initialize the board
+                this.gameBoard.initGrid();
+                this.gameBoard.render();
+                
+                // Reset tracking variables
+                this.currentCombo = 0;
+                this.accumulatedDamage = 0;
+                this.healAmount = 0;
+                
+                // Set up callbacks for sequential combo processing
+                this.gameBoard.onComboProcessed = (combo, comboNumber) => {
+                    this.handleComboProcessed(combo, comboNumber);
+                };
+                
+                // Set up game loop
+                this.gameBoard.onMatchesProcessed = (comboCount, matchesByColor) => {
+                    if (comboCount > 0) {
+                        // Apply final damage and healing after all combos
+                        this.finalizeTurn();
+                    } else {
+                        this.enemyTurn();
+                    }
+                };
+            }
+            
+            createMonsterElement(monster, isPlayer) {
+                const monsterEl = document.createElement('div');
+                monsterEl.className = 'monster';
+                
+                // Set monster color based on element
+                let baseColor;
+                switch(monster.element) {
+                    case 'red': baseColor = '#f44336'; break;
+                    case 'blue': baseColor = '#2196f3'; break;
+                    case 'green': baseColor = '#4caf50'; break;
+                    case 'yellow': baseColor = '#ffeb3b'; break;
+                    case 'purple': baseColor = '#9c27b0'; break;
+                    case 'pink': baseColor = '#e91e63'; break;
+                    default: baseColor = '#ffffff';
+                }
+                
+                monsterEl.style.backgroundColor = baseColor;
+                
+                // Add stars for rarity
+                const rarityStars = '★'.repeat(monster.rarity);
+                
+                const monsterName = document.createElement('div');
+                monsterName.className = 'monster-name';
+                monsterName.textContent = `${monster.type} ${rarityStars}`;
+                
+                const hpBar = document.createElement('div');
+                hpBar.className = 'hp-bar';
+                
+                const hpFill = document.createElement('div');
+                hpFill.className = 'hp-fill';
+                hpFill.style.width = '100%';
+                hpFill.style.backgroundColor = '#4CAF50';
+                
+                hpBar.appendChild(hpFill);
+                monsterEl.appendChild(monsterName);
+                monsterEl.appendChild(hpBar);
+                
+                if (isPlayer) {
+                    document.querySelector('.player-monsters').appendChild(monsterEl);
+                } else {
+                    document.querySelector('.enemy-monsters').appendChild(monsterEl);
+                }
+                
+                return {
+                    element: monsterEl,
+                    hpFill: hpFill
+                };
+            }
+            
+            updateMonsterHP(monsterUI, monster) {
+                const hpPercentage = (monster.hp / monster.maxHp) * 100;
+                monsterUI.hpFill.style.width = `${hpPercentage}%`;
+                
+                if (hpPercentage < 25) {
+                    monsterUI.hpFill.style.backgroundColor = '#f44336'; // Red when low HP
+                } else if (hpPercentage < 50) {
+                    monsterUI.hpFill.style.backgroundColor = '#ff9800'; // Orange when medium HP
+                } else {
+                    monsterUI.hpFill.style.backgroundColor = '#4CAF50'; // Green when high HP
+                }
+            }
+            
+            createEnemy(level) {
+                const hp = 50 + (level - 1) * 20;
+                const atk = 10 + (level - 1) * 5;
+                
+                const elements = ['red', 'blue', 'green', 'yellow', 'purple'];
+                const element = elements[Math.floor(Math.random() * elements.length)];
+                
+                let enemyType;
+                if (level % 5 === 0) {
+                    enemyType = 'ボス';
+                } else if (level % 3 === 0) {
+                    enemyType = 'エリート';
+                } else {
+                    const types = ['スライム', 'ゴブリン', 'オーク', 'ドラゴン', 'デーモン'];
+                    enemyType = types[Math.floor(Math.random() * types.length)];
+                }
+                
+                const rarity = Math.min(5, Math.ceil(level / 2));
+                
+                return new Monster(`${enemyType} Lv.${level}`, hp, atk, element, rarity);
+            }
+            
+            handleComboProcessed(combo, comboNumber) {
+                // Update the current combo count
+                this.currentCombo = comboNumber;
+                
+                // Calculate damage for this combo
+                const color = combo.color;
+                const count = combo.orbs.size;
+                const baseDamage = count * 5;
+                
+                let comboDamage = 0;
+                let comboHeal = 0;
+                
+                // Find monsters that match this element for bonus damage
+                this.playerTeam.forEach(monster => {
+                    if (monster.element === color && monster.hp > 0) {
+                        if (color === 'pink') {
+                            // Heart orbs heal instead of damage
+                            comboHeal += baseDamage * (monster.atk / 10);
+                        } else {
+                            comboDamage += baseDamage * (monster.atk / 10);
+                        }
+                    }
+                });
+                
+                // Apply combo multiplier (20% more damage per combo)
+                comboDamage *= (1 + (comboNumber - 1) * 0.2);
+                comboDamage = Math.round(comboDamage);
+                
+                // Accumulate damage and healing
+                this.accumulatedDamage += comboDamage;
+                this.healAmount += comboHeal;
+                
+                // Show damage text for this combo - smaller on early combos, larger on later ones
+                if (comboDamage > 0) {
+                    // Show individual combo damage with combo number in text
+                    const comboText = `${comboNumber}コンボ!`;
+                    this.gameBoard.showDamageText(comboDamage, comboText, false, comboNumber);
+                }
+            }
+            
+            finalizeTurn() {
+                // Show total damage text at the end (larger)
+                if (this.accumulatedDamage > 0) {
+                    setTimeout(() => {
+                        this.gameBoard.showDamageText(this.accumulatedDamage, '合計ダメージ!', true);
+                    
+                        // Apply damage to enemy
+                        const isDead = this.enemy.takeDamage(this.accumulatedDamage);
+                        this.updateMonsterHP(this.enemyMonsterUI, this.enemy);
+                        
+                        // Update enemy HP display
+                        document.getElementById('enemy-hp').textContent = this.enemy.hp;
+                        
+                        // Apply healing if any
+                        if (this.healAmount > 0) {
+                            this.playerTeam.forEach(monster => {
+                                if (monster.hp > 0) {
+                                    monster.heal(Math.round(this.healAmount / this.playerTeam.length));
+                                }
+                            });
+                            
+                            // Update player monster HP displays
+                            this.playerTeam.forEach((monster, index) => {
+                                this.updateMonsterHP(this.playerMonsterUIs[index], monster);
+                            });
+                            
+                            // Update total player HP
+                            document.getElementById('player-hp').textContent = 
+                                this.playerTeam.reduce((total, monster) => total + monster.hp, 0);
+                        }
+                        
+                        // Check if enemy is defeated
+                        if (isDead) {
+                            this.handleEnemyDefeated();
+                        } else {
+                            // Enemy's turn
+                            setTimeout(() => {
+                                this.enemyTurn();
+                            }, 1500);
+                        }
+                    }, 500);
+                } else {
+                    // No damage done, proceed to enemy turn
+                    this.enemyTurn();
+                }
+                
+                // Reset tracking variables for next turn
+                setTimeout(() => {
+                    this.currentCombo = 0;
+                    this.accumulatedDamage = 0;
+                    this.healAmount = 0;
+                }, 2000);
+            }
+            
+            handleEnemyDefeated() {
+                // Create victory particles
+                this.gameBoard.createVictoryParticles();
+                
+                // Play victory animation with slight delay
+                setTimeout(() => {
+                    // Show victory message
+                    document.getElementById('message-title').textContent = 'レベルクリア!';
+                    document.getElementById('message-text').textContent = 
+                        `レベル ${this.currentLevel} の敵を倒しました！次のレベルへ進みます。`;
+                    
+                    // Add level up bonus display
+                    const bonusHTML = `
+                        <div style="margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                            <p style="margin-bottom: 10px; color: #FFC107;">レベルアップボーナス</p>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>スコア +${this.currentLevel * 500}</span>
+                                <span style="color: #FFC107;">+${this.currentLevel * 500}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>HP回復</span>
+                                <span style="color: #4CAF50;">+20%</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('message-text').innerHTML += bonusHTML;
+                    document.getElementById('game-message').style.display = 'block';
+                    
+                    this.currentLevel++;
+                    
+                    // Update score
+                    const scoreElement = document.getElementById('score');
+                    const currentScore = parseInt(scoreElement.textContent);
+                    scoreElement.textContent = currentScore + (this.currentLevel - 1) * 500;
+                    
+                    // Heal player monsters slightly
+                    this.playerTeam.forEach(monster => {
+                        monster.hp = Math.min(monster.maxHp, monster.hp + monster.maxHp * 0.2);
+                    });
+                    
+                    // Set up callback for when message is dismissed
+                    document.getElementById('message-button').onclick = () => {
+                        document.getElementById('game-message').style.display = 'none';
+                        
+                        // Clear any remaining particles
+                        const particlesContainer = document.querySelector('.particles-container');
+                        if (particlesContainer) {
+                            document.body.removeChild(particlesContainer);
+                        }
+                        
+                        this.initGame();
+                    };
+                }, 800);
+            }
+            
+            enemyTurn() {
+                // Calculate which player monster to attack (prioritize low HP ones)
+                const livingMonsters = this.playerTeam.filter(monster => monster.hp > 0);
+                
+                if (livingMonsters.length === 0) {
+                    return;
+                }
+                
+                // Sort by HP percentage
+                livingMonsters.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+                
+                const target = livingMonsters[0];
+                const targetIndex = this.playerTeam.indexOf(target);
+                
+                // Calculate damage
+                const damage = this.enemy.attack();
+                
+                // Show attack animation
+                this.gameBoard.showEnemyAttack(() => {
+                    // Apply damage
+                    const isDead = target.takeDamage(damage);
+                    
+                    // Update HP display
+                    this.updateMonsterHP(this.playerMonsterUIs[targetIndex], target);
+                    document.getElementById('player-hp').textContent = 
+                        this.playerTeam.reduce((total, monster) => total + monster.hp, 0);
+                    
+                    // Check if player is defeated
+                    if (this.playerTeam.every(monster => monster.hp <= 0)) {
+                        // Show game over message
+                        document.getElementById('message-title').textContent = 'ゲームオーバー!';
+                        document.getElementById('message-text').textContent = 
+                            `レベル ${this.currentLevel} で全滅しました。`;
+                        document.getElementById('game-message').style.display = 'block';
+                        
+                        // Reset game
+                        this.currentLevel = 1;
+                        this.playerTeam.forEach(monster => {
+                            monster.hp = monster.maxHp;
+                        });
+                        
+                        // Set up callback for when message is dismissed
+                        document.getElementById('message-button').onclick = () => {
+                            document.getElementById('game-message').style.display = 'none';
+                            this.initGame();
+                        };
+                    }
+                });
+            }
+        }
+
+        // Start the game when the page loads
+        window.addEventListener('load', () => {
+            new Game();
+        });
+    </script>
+</body>
+</html>
