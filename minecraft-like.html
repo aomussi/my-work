@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マインクラフト風3Dゲーム</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- ポストプロセッシングライブラリを追加 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/ShaderPass.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .game-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #333;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        .message {
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 14px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            max-width: 80%;
+            transition: opacity 0.3s;
+        }
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 8px;
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+        .block-button {
+            padding: 8px 12px;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .block-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        .block-button.selected {
+            border: 2px solid white;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+        }
+        .block-button span {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .block-button:hover span {
+            opacity: 1;
+        }
+        .dirt {
+            background-color: #8B4513;
+            color: white;
+        }
+        .grass {
+            background-color: #567D46;
+            color: white;
+        }
+        .stone {
+            background-color: #808080;
+            color: white;
+        }
+        .wood {
+            background-color: #8B5A2B;
+            color: white;
+        }
+        .leaves {
+            background-color: #228B22;
+            color: white;
+        }
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+        .controls-panel {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 250px;
+            z-index: 10;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .controls-panel:hover {
+            opacity: 1;
+        }
+        .controls-panel h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #fff;
+            text-align: center;
+        }
+        .controls-panel ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin: 5px 0;
+        }
+        .controls-panel li {
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .controls-panel .key {
+            background-color: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 8px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .crosshair::before,
+        .crosshair::after {
+            content: "";
+            position: absolute;
+            background-color: rgba(255,255,255,0.7);
+        }
+        .crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .crosshair::after {
+            width: 20px;
+            height: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .settings-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            z-index: 10;
+            transition: background-color 0.2s;
+        }
+        .settings-btn:hover {
+            background-color: rgba(0,0,0,0.8);
+        }
+        .settings-panel {
+            position: absolute;
+            top: 60px;
+            right: 15px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 10;
+            display: none;
+            width: 250px;
+        }
+        .settings-panel h3 {
+            margin-top: 0;
+            text-align: center;
+        }
+        .settings-panel label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        .settings-panel input[type="range"] {
+            width: 100%;
+        }
+        .mobile-controls {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+        .joystick-base {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 50%;
+        }
+        .joystick-knob {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255,255,255,0.7);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .mobile-btns {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        .mobile-btn {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .mobile-controls {
+                display: block;
+            }
+            .controls-panel {
+                display: none;
+            }
+        }
+        .touch-block-menu {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+        .touch-block-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .pointer-lock-tip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 20;
+            display: none;
+        }
+        .player-stats {
+            position: absolute;
+            top: 65px;
+            left: 15px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .stats-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .stats-value {
+            background-color: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            min-width: 30px;
+            text-align: center;
+        }
+        /* ブロックインベントリカウンターのスタイル */
+        .block-counter {
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 50%;
+            font-size: 12px;
+            min-width: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="message" class="message">クリックしてゲームを開始</div>
+        
+        <div class="toolbar">
+            <button id="dirt" class="block-button dirt selected">
+                <span>1</span>
+                土
+                <div class="block-counter">∞</div>
+            </button>
+            <button id="grass" class="block-button grass">
+                <span>2</span>
+                草
+                <div class="block-counter">∞</div>
+            </button>
+            <button id="stone" class="block-button stone">
+                <span>3</span>
+                石
+                <div class="block-counter">∞</div>
+            </button>
+            <button id="wood" class="block-button wood">
+                <span>4</span>
+                木
+                <div class="block-counter">∞</div>
+            </button>
+            <button id="leaves" class="block-button leaves">
+                <span>5</span>
+                葉
+                <div class="block-counter">∞</div>
+            </button>
+        </div>
+        
+        <div id="game-container"></div>
+        <div class="crosshair"></div>
+        
+        <div class="controls-panel">
+            <h3>操作方法</h3>
+            <ul>
+                <li><span class="key">W</span> 前進</li>
+                <li><span class="key">A</span> 左移動</li>
+                <li><span class="key">S</span> 後退</li>
+                <li><span class="key">D</span> 右移動</li>
+                <li><span class="key">スペース</span> ジャンプ</li>
+                <li><span class="key">Shift</span> ダッシュ</li>
+                <li><span class="key">E</span> インベントリ</li>
+                <li><span class="key">1-5</span> ブロック選択</li>
+                <li><span class="key">左クリック</span> ブロック削除</li>
+                <li><span class="key">右クリック</span> ブロック設置</li>
+                <li><span class="key">マウスホイール</span> ブロック切替え</li>
+                <li><span class="key">ESC</span> マウス解放</li>
+            </ul>
+        </div>
+        
+        <button class="settings-btn">設定</button>
+        <div class="settings-panel">
+            <h3>設定</h3>
+            <label for="mouse-sensitivity">マウス感度: <span id="sensitivity-value">5</span></label>
+            <input type="range" id="mouse-sensitivity" min="1" max="10" value="5">
+            
+            <label for="render-distance">描画距離: <span id="render-value">10</span></label>
+            <input type="range" id="render-distance" min="5" max="20" value="10">
+            
+            <label for="volume">音量: <span id="volume-value">50</span>%</label>
+            <input type="range" id="volume" min="0" max="100" value="50">
+        </div>
+        
+        <div class="mobile-controls">
+            <div class="joystick-base">
+                <div class="joystick-knob"></div>
+            </div>
+        </div>
+        
+        <div class="mobile-btns">
+            <button class="mobile-btn" id="mobile-jump">↑</button>
+            <button class="mobile-btn" id="mobile-action">✓</button>
+        </div>
+        
+        <div class="touch-block-menu">
+            <button class="touch-block-btn dirt"></button>
+            <button class="touch-block-btn grass"></button>
+            <button class="touch-block-btn stone"></button>
+            <button class="touch-block-btn wood"></button>
+            <button class="touch-block-btn leaves"></button>
+        </div>
+        
+        <div class="pointer-lock-tip">
+            クリックでマウスポインターをロック<br>
+            ESCで解除
+        </div>
+        
+        <div class="player-stats">
+            <div class="stats-item">
+                <span>X:</span>
+                <span id="player-x" class="stats-value">0</span>
+            </div>
+            <div class="stats-item">
+                <span>Y:</span>
+                <span id="player-y" class="stats-value">0</span>
+            </div>
+            <div class="stats-item">
+                <span>Z:</span>
+                <span id="player-z" class="stats-value">0</span>
+            </div>
+            <div class="stats-item">
+                <span>FPS:</span>
+                <span id="fps" class="stats-value">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ゲーム初期化
+        let scene, camera, renderer;
+        let blocks = [];
+        let blockPreview = null;  // ブロックプレビュー用
+        let raycaster = new THREE.Raycaster();
+        let selectedBlock = 'dirt';
+        let message = document.getElementById('message');
+        let gameContainer = document.getElementById('game-container');
+        let pointerLocked = false;
+        let settingsOpen = false;
+        let highPerformanceMode = false;
+        let lastTime = 0;
+        let frameCount = 0;
+        let fps = 0;
+        
+        // 設定
+        let settings = {
+            mouseSensitivity: 5,
+            renderDistance: 10,
+            volume: 50
+        };
+        
+        // プレイヤー状態
+        const player = {
+            height: 1.8,
+            speed: 0.1,
+            sprintSpeed: 0.2,
+            jumpForce: 0.15,
+            gravity: 0.01,
+            velocity: { x: 0, y: 0, z: 0 },
+            jumping: false,
+            grounded: false,
+            sprinting: false,
+            collisionBox: { width: 0.6, height: 1.8, depth: 0.6 },
+            // カメラコントロール用の変数追加
+            pitch: 0, // 上下の視線角度
+            yaw: 0    // 左右の視線角度
+        };
+        
+        // インベントリ
+        const inventory = {
+            dirt: Infinity,
+            grass: Infinity,
+            stone: Infinity,
+            wood: Infinity,
+            leaves: Infinity
+        };
+        
+        // キー操作
+        const keys = { 
+            w: false, 
+            a: false, 
+            s: false, 
+            d: false, 
+            ' ': false,  // スペースキー
+            shift: false,
+            e: false,
+            1: false,
+            2: false,
+            3: false,
+            4: false,
+            5: false
+        };
+        
+        // マウス状態
+        const mouse = {
+            x: 0,
+            y: 0,
+            down: false,
+            rightDown: false,
+            wheelDelta: 0
+        };
+        
+        // 音声効果
+        const sounds = {
+            blockPlace: null,
+            blockBreak: null,
+            walk: null,
+            jump: null
+        };
+        
+        // Three.js初期化
+        function init() {
+            // シーン作成
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // 空色
+            scene.fog = new THREE.Fog(0x87CEEB, 1, settings.renderDistance * 5);
+            
+            // カメラ設定
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, player.height, 10);
+            
+            // レンダラー設定
+            renderer = new THREE.WebGLRenderer({ antialias: !highPerformanceMode });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            gameContainer.appendChild(renderer.domElement);
+            
+            // 光源追加
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = !highPerformanceMode;
+            scene.add(directionalLight);
+            
+            if (!highPerformanceMode) {
+                renderer.shadowMap.enabled = true;
+                directionalLight.shadow.mapSize.width = 1024;
+                directionalLight.shadow.mapSize.height = 1024;
+            }
+            
+            // 地形生成
+            createTerrain();
+            
+            // ポストプロセッシング機能 - エラー回避のため無効化
+            /* 
+            if (!highPerformanceMode) {
+                const composer = new THREE.EffectComposer(renderer);
+                const renderPass = new THREE.RenderPass(scene, camera);
+                composer.addPass(renderPass);
+            }
+            */
+            
+            // ブロックプレビューの初期化
+            initBlockPreview();
+            
+            // 音声効果の初期化
+            initSounds();
+            
+            // イベントリスナー設定
+            setupEventListeners();
+            
+            // ポインターロックのUI表示
+            document.querySelector('.pointer-lock-tip').style.display = 'block';
+            
+            // アニメーション開始
+            animate(0);
+        }
+        
+        // ブロック素材の定義
+        function createBlockMaterial(color) {
+            return new THREE.MeshStandardMaterial({ color });
+        }
+        
+        const blockMaterials = {
+            dirt: createBlockMaterial(0x8B4513),
+            grass: createBlockMaterial(0x567D46),
+            stone: createBlockMaterial(0x808080),
+            wood: createBlockMaterial(0x8B5A2B),
+            leaves: createBlockMaterial(0x228B22)
+        };
+        
+        // ブロック作成関数
+        function createBlock(x, y, z, type) {
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = blockMaterials[type] || blockMaterials.dirt;
+            const block = new THREE.Mesh(geometry, material);
+            block.position.set(x, y, z);
+            block.userData = { type };
+            
+            if (!highPerformanceMode) {
+                block.castShadow = true;
+                block.receiveShadow = true;
+            }
+            
+            scene.add(block);
+            blocks.push(block);
+            return block;
+        }
+        
+        // ブロックプレビューの初期化
+        function initBlockPreview() {
+            const geometry = new THREE.BoxGeometry(1.01, 1.01, 1.01);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                wireframe: true,
+                opacity: 0.5,
+                transparent: true
+            });
+            
+            blockPreview = new THREE.Mesh(geometry, material);
+            blockPreview.visible = false;
+            scene.add(blockPreview);
+        }
+        
+        // 音声効果の初期化
+        function initSounds() {
+            // 音声コンテキストの作成（必要に応じて）
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                const audioContext = new AudioContext();
+                
+                // 音声効果を作成・読み込みする処理を追加
+                // ここでは簡単な例として記述しました
+                sounds.blockPlace = {
+                    play: function() {
+                        if (settings.volume > 0) {
+                            // 実際の音声再生コードをここに
+                            console.log("ブロック設置音");
+                        }
+                    }
+                };
+                
+                sounds.blockBreak = {
+                    play: function() {
+                        if (settings.volume > 0) {
+                            console.log("ブロック削除音");
+                        }
+                    }
+                };
+                
+                sounds.walk = {
+                    play: function() {
+                        if (settings.volume > 0) {
+                            console.log("歩行音");
+                        }
+                    }
+                };
+                
+                sounds.jump = {
+                    play: function() {
+                        if (settings.volume > 0) {
+                            console.log("ジャンプ音");
+                        }
+                    }
+                };
+            }
+        }
+        
+        // イベントリスナーのセットアップ
+        function setupEventListeners() {
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('wheel', onMouseWheel);
+            document.addEventListener('contextmenu', evt => evt.preventDefault());
+            
+            // ポインターロックの変更イベント
+            document.addEventListener('pointerlockchange', onPointerLockChange);
+            document.addEventListener('mozpointerlockchange', onPointerLockChange);
+            document.addEventListener('webkitpointerlockchange', onPointerLockChange);
+            
+            // ゲームコンテナをクリックしたときにポインターロックを要求
+            gameContainer.addEventListener('click', requestPointerLock);
+            
+            // ブロックボタンの設定
+            document.querySelectorAll('.block-button').forEach((button, index) => {
+                button.addEventListener('click', () => {
+                    selectBlockType(button.id);
+                });
+            });
+            
+            // 設定ボタンイベント
+            document.querySelector('.settings-btn').addEventListener('click', toggleSettings);
+            
+            // 設定スライダーの変更イベント
+            document.getElementById('mouse-sensitivity').addEventListener('input', updateMouseSensitivity);
+            document.getElementById('render-distance').addEventListener('input', updateRenderDistance);
+            document.getElementById('volume').addEventListener('input', updateVolume);
+            
+            // モバイルコントロールイベント（タッチデバイス用）
+            if ('ontouchstart' in window) {
+                setupMobileControls();
+            }
+        }
+        
+        // モバイルコントロールのセットアップ
+        function setupMobileControls() {
+            const joystickBase = document.querySelector('.joystick-base');
+            const joystickKnob = document.querySelector('.joystick-knob');
+            const jumpBtn = document.getElementById('mobile-jump');
+            const actionBtn = document.getElementById('mobile-action');
+            const blockMenu = document.querySelector('.touch-block-menu');
+            
+            let joystickActive = false;
+            let joystickRect = joystickBase.getBoundingClientRect();
+            let centerX = joystickRect.left + joystickRect.width / 2;
+            let centerY = joystickRect.top + joystickRect.height / 2;
+            
+            // ジョイスティックのタッチイベント
+            joystickBase.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickActive = true;
+                updateJoystickPosition(e.touches[0]);
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (joystickActive) {
+                    e.preventDefault();
+                    updateJoystickPosition(e.touches[0]);
+                }
+            });
+            
+            document.addEventListener('touchend', (e) => {
+                if (joystickActive) {
+                    joystickActive = false;
+                    joystickKnob.style.transform = 'translate(-50%, -50%)';
+                    keys.w = keys.a = keys.s = keys.d = false;
+                }
+            });
+            
+            // ジョイスティック位置の更新
+            function updateJoystickPosition(touch) {
+                joystickRect = joystickBase.getBoundingClientRect();
+                centerX = joystickRect.left + joystickRect.width / 2;
+                centerY = joystickRect.top + joystickRect.height / 2;
+                
+                let deltaX = touch.clientX - centerX;
+                let deltaY = touch.clientY - centerY;
+                
+                // ジョイスティックの移動範囲を制限
+                const maxDistance = joystickRect.width / 2;
+                let distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (distance > maxDistance) {
+                    deltaX = deltaX / distance * maxDistance;
+                    deltaY = deltaY / distance * maxDistance;
+                }
+                
+                // ジョイスティックを移動
+                joystickKnob.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+                
+                // 移動方向を設定
+                keys.w = deltaY < -10;
+                keys.s = deltaY > 10;
+                keys.a = deltaX < -10;
+                keys.d = deltaX > 10;
+            }
+            
+            // ジャンプボタン
+            jumpBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys.space = true;
+            });
+            
+            jumpBtn.addEventListener('touchend', () => {
+                keys.space = false;
+            });
+            
+            // アクションボタン（右クリック相当）
+            actionBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                blockMenu.style.display = blockMenu.style.display === 'flex' ? 'none' : 'flex';
+            });
+            
+            // ブロック選択メニューのセットアップ
+            document.querySelectorAll('.touch-block-btn').forEach((button, index) => {
+                const blockTypes = ['dirt', 'grass', 'stone', 'wood', 'leaves'];
+                
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    selectBlockType(blockTypes[index]);
+                    blockMenu.style.display = 'none';
+                });
+            });
+        }
+        
+        // ブロックタイプの選択
+        function selectBlockType(type) {
+            selectedBlock = type;
+            
+            // 選択状態を更新
+            document.querySelectorAll('.block-button').forEach(button => {
+                button.classList.remove('selected');
+                if (button.id === type) {
+                    button.classList.add('selected');
+                }
+            });
+            
+            updateMessage(`選択したブロック: ${type}`);
+        }
+        
+        // メッセージの更新
+        function updateMessage(text, duration = 2000) {
+            message.textContent = text;
+            message.style.opacity = 1;
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    message.style.opacity = 0;
+                }, duration);
+            }
+        }
+        
+        // ポインターロックを要求
+        function requestPointerLock() {
+            if (!pointerLocked) {
+                const element = document.body;
+                
+                element.requestPointerLock = element.requestPointerLock || 
+                                           element.mozRequestPointerLock ||
+                                           element.webkitRequestPointerLock;
+                
+                if (element.requestPointerLock) {
+                    element.requestPointerLock();
+                    document.querySelector('.pointer-lock-tip').style.display = 'none';
+                }
+            }
+        }
+        
+        // ポインターロック状態の変更処理
+        function onPointerLockChange() {
+            pointerLocked = document.pointerLockElement === document.body ||
+                           document.mozPointerLockElement === document.body ||
+                           document.webkitPointerLockElement === document.body;
+            
+            if (pointerLocked) {
+                document.querySelector('.pointer-lock-tip').style.display = 'none';
+                updateMessage('ゲーム開始！ ESCキーでマウスを解放');
+            } else {
+                document.querySelector('.pointer-lock-tip').style.display = 'block';
+            }
+        }
+        
+        // 設定パネルの表示/非表示切り替え
+        function toggleSettings() {
+            const settingsPanel = document.querySelector('.settings-panel');
+            settingsOpen = !settingsOpen;
+            
+            if (settingsOpen) {
+                settingsPanel.style.display = 'block';
+            } else {
+                settingsPanel.style.display = 'none';
+            }
+        }
+        
+        // マウス感度の設定更新
+        function updateMouseSensitivity(e) {
+            settings.mouseSensitivity = parseInt(e.target.value);
+            document.getElementById('sensitivity-value').textContent = settings.mouseSensitivity;
+        }
+        
+        // 描画距離の設定更新
+        function updateRenderDistance(e) {
+            settings.renderDistance = parseInt(e.target.value);
+            document.getElementById('render-value').textContent = settings.renderDistance;
+            scene.fog.far = settings.renderDistance * 5;
+        }
+        
+        // 音量の設定更新
+        function updateVolume(e) {
+            settings.volume = parseInt(e.target.value);
+            document.getElementById('volume-value').textContent = settings.volume;
+        }
+        
+        // 地形生成
+        function createTerrain() {
+            // 床面
+            const groundGeometry = new THREE.BoxGeometry(100, 1, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.position.y = -0.5;
+            
+            if (!highPerformanceMode) {
+                ground.receiveShadow = true;
+            }
+            
+            scene.add(ground);
+            
+            // ランダム地形
+            for (let x = -15; x <= 15; x++) {
+                for (let z = -15; z <= 15; z++) {
+                    createBlock(x, -1, z, 'dirt');
+                    
+                    // パーリンノイズを使用してより自然な地形を生成
+                    const noiseValue = (Math.sin(x * 0.3) + Math.sin(z * 0.3)) * 0.5 + 0.5;
+                    if (noiseValue > 0.5) {
+                        const height = Math.floor(noiseValue * 4);
+                        for (let y = 0; y < height; y++) {
+                            const blockType = y === height - 1 ? 'grass' : 'dirt';
+                            createBlock(x, y, z, blockType);
+                        }
+                    }
+                    
+                    // ランダムな木
+                    if (Math.random() > 0.95) {
+                        const treeHeight = 4 + Math.floor(Math.random() * 3);
+                        for (let y = 0; y < treeHeight; y++) {
+                            createBlock(x, y, z, 'wood');
+                        }
+                        // 葉っぱ（より自然な形状）
+                        for (let lx = -2; lx <= 2; lx++) {
+                            for (let ly = 0; ly <= 3; ly++) {
+                                for (let lz = -2; lz <= 2; lz++) {
+                                    // 球形に近い形状を作成
+                                    const distance = Math.sqrt(lx*lx + ly*ly + lz*lz);
+                                    if (distance < 2.5 && Math.random() > 0.3 && !(lx === 0 && lz === 0 && ly < 3)) {
+                                        createBlock(x + lx, treeHeight + ly - 1, z + lz, 'leaves');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // ランダムな石
+                    if (Math.random() > 0.95) {
+                        const stoneHeight = 1 + Math.floor(Math.random() * 2);
+                        for (let y = 0; y < stoneHeight; y++) {
+                            createBlock(x, y, z, 'stone');
+                        }
+                    }
+                }
+            }
+        }
+        
+        // イベントハンドラー
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function onKeyDown(event) {
+            const key = event.key.toLowerCase();
+            
+            // キー操作の処理
+            if (keys.hasOwnProperty(key)) {
+                keys[key] = true;
+                
+                // 数字キーによるブロック選択
+                if (key >= '1' && key <= '5') {
+                    const blockTypes = ['dirt', 'grass', 'stone', 'wood', 'leaves'];
+                    const index = parseInt(key) - 1;
+                    if (index >= 0 && index < blockTypes.length) {
+                        selectBlockType(blockTypes[index]);
+                    }
+                }
+                
+                // ジャンプ処理
+                if (key === ' ' && player.grounded) {
+                    console.log("ジャンプ開始");
+                    player.velocity.y = player.jumpForce;
+                    player.jumping = true;
+                    player.grounded = false;
+                    
+                    if (sounds.jump) {
+                        sounds.jump.play();
+                    }
+                }
+                
+                // ダッシュ処理
+                if (key === 'shift') {
+                    player.sprinting = true;
+                }
+                
+                // インベントリの表示（未実装）
+                if (key === 'e') {
+                    event.preventDefault();
+                    console.log("インベントリ表示（未実装）");
+                }
+            }
+        }
+        
+        function onKeyUp(event) {
+            const key = event.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) {
+                keys[key] = false;
+                
+                if (key === 'shift') {
+                    player.sprinting = false;
+                }
+            }
+        }
+        
+        function onMouseMove(event) {
+            if (!pointerLocked) return;
+            
+            // ポインターロック時のマウス移動量を取得
+            const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+            const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+            
+            // 感度を適用
+            const sensitivity = settings.mouseSensitivity * 0.002;
+            
+            // 視点角度の更新 (yaw, pitch)
+            player.yaw -= movementX * sensitivity;
+            player.pitch -= movementY * sensitivity;
+            
+            // 縦方向の視点角度を制限（上下90度まで）
+            const maxPitchAngle = Math.PI / 2 - 0.1;
+            player.pitch = Math.max(-maxPitchAngle, Math.min(maxPitchAngle, player.pitch));
+            
+            // カメラの向きを更新
+            updateCameraDirection();
+        }
+        
+        // カメラの向きを更新する関数
+        function updateCameraDirection() {
+            // 新しい向きベクトルを計算
+            const direction = new THREE.Vector3();
+            direction.x = Math.sin(player.yaw) * Math.cos(player.pitch);
+            direction.y = Math.sin(player.pitch);
+            direction.z = Math.cos(player.yaw) * Math.cos(player.pitch);
+            
+            // カメラの向きを設定
+            camera.lookAt(camera.position.clone().add(direction));
+        }
+        
+        function onMouseDown(event) {
+            if (!pointerLocked) return;
+            
+            if (event.button === 0) {
+                mouse.down = true;
+                handleBlockInteraction();
+            } else if (event.button === 2) {
+                mouse.rightDown = true;
+                handleBlockInteraction(true);
+            }
+        }
+        
+        function onMouseUp(event) {
+            if (event.button === 0) {
+                mouse.down = false;
+            } else if (event.button === 2) {
+                mouse.rightDown = false;
+            }
+        }
+        
+        function onMouseWheel(event) {
+            if (!pointerLocked) return;
+            
+            // マウスホイールでブロック選択を切り替え
+            const blockTypes = ['dirt', 'grass', 'stone', 'wood', 'leaves'];
+            let currentIndex = blockTypes.indexOf(selectedBlock);
+            
+            // ホイールの方向に応じてインデックスを変更
+            if (event.deltaY < 0) {
+                currentIndex = (currentIndex - 1 + blockTypes.length) % blockTypes.length;
+            } else {
+                currentIndex = (currentIndex + 1) % blockTypes.length;
+            }
+            
+            selectBlockType(blockTypes[currentIndex]);
+        }
+        
+        // ブロック操作（設置/削除）
+        function handleBlockInteraction(isRightClick = false) {
+            const mouseVector = new THREE.Vector2(0, 0); // 画面中央
+            raycaster.setFromCamera(mouseVector, camera);
+            const intersects = raycaster.intersectObjects(blocks);
+            
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                
+                if (!isRightClick) {
+                    // 左クリック: ブロック削除
+                    const block = intersect.object;
+                    scene.remove(block);
+                    blocks.splice(blocks.indexOf(block), 1);
+                    
+                    // ブロックをインベントリに追加
+                    const blockType = block.userData.type;
+                    inventory[blockType]++;
+                    updateBlockCounter(blockType);
+                    
+                    if (sounds.blockBreak) {
+                        sounds.blockBreak.play();
+                    }
+                } else {
+                    // 右クリック: ブロック設置
+                    const position = new THREE.Vector3().copy(intersect.point).add(
+                        intersect.face.normal.multiplyScalar(0.5)
+                    );
+                    const x = Math.round(position.x);
+                    const y = Math.round(position.y);
+                    const z = Math.round(position.z);
+                    
+                    // ブロックが既に存在するか確認
+                    const blockExists = blocks.some(block => 
+                        block.position.x === x && 
+                        block.position.y === y && 
+                        block.position.z === z
+                    );
+                    
+                    // ブロックがプレイヤーと衝突しないか確認
+                    const playerPos = camera.position;
+                    const collidesWithPlayer = (
+                        Math.abs(x - playerPos.x) < (player.collisionBox.width + 0.5) &&
+                        Math.abs(y - playerPos.y) < (player.collisionBox.height + 0.5) &&
+                        Math.abs(z - playerPos.z) < (player.collisionBox.depth + 0.5)
+                    );
+                    
+                    if (!blockExists && !collidesWithPlayer && inventory[selectedBlock] > 0) {
+                        createBlock(x, y, z, selectedBlock);
+                        
+                        // インベントリから減らす（無限モードでなければ）
+                        if (inventory[selectedBlock] !== Infinity) {
+                            inventory[selectedBlock]--;
+                            updateBlockCounter(selectedBlock);
+                        }
+                        
+                        if (sounds.blockPlace) {
+                            sounds.blockPlace.play();
+                        }
+                    }
+                }
+            }
+        }
+        
+        // ブロックプレビューの更新
+        function updateBlockPreview() {
+            if (!pointerLocked) {
+                blockPreview.visible = false;
+                return;
+            }
+            
+            const mouseVector = new THREE.Vector2(0, 0); // 画面中央
+            raycaster.setFromCamera(mouseVector, camera);
+            const intersects = raycaster.intersectObjects(blocks);
+            
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                const position = new THREE.Vector3().copy(intersect.point).add(
+                    intersect.face.normal.multiplyScalar(0.5)
+                );
+                
+                const x = Math.round(position.x);
+                const y = Math.round(position.y);
+                const z = Math.round(position.z);
+                
+                blockPreview.position.set(x, y, z);
+                blockPreview.visible = true;
+                
+                // プレビューの色を選択中のブロックに合わせる
+                blockPreview.material.color.set(blockMaterials[selectedBlock].color);
+                blockPreview.material.opacity = 0.5;
+            } else {
+                blockPreview.visible = false;
+            }
+        }
+        
+        // インベントリカウンターの更新
+        function updateBlockCounter(blockType) {
+            const button = document.getElementById(blockType);
+            if (button) {
+                const counter = button.querySelector('.block-counter');
+                if (counter) {
+                    counter.textContent = inventory[blockType] === Infinity ? '∞' : inventory[blockType];
+                }
+            }
+        }
+        
+        // FPSカウンターの更新
+        function updateFPS(time) {
+            frameCount++;
+            
+            if (time - lastTime >= 1000) {
+                fps = Math.round(frameCount * 1000 / (time - lastTime));
+                document.getElementById('fps').textContent = fps;
+                frameCount = 0;
+                lastTime = time;
+            }
+        }
+        
+        // プレイヤー座標の更新
+        function updatePlayerCoordinates() {
+            document.getElementById('player-x').textContent = Math.round(camera.position.x);
+            document.getElementById('player-y').textContent = Math.round(camera.position.y);
+            document.getElementById('player-z').textContent = Math.round(camera.position.z);
+        }
+        
+        // プレイヤー物理演算処理
+        function updatePlayerPhysics() {
+            // 重力適用
+            player.velocity.y -= player.gravity;
+            camera.position.y += player.velocity.y;
+            
+            // デバッグ表示
+            //console.log(`Position Y: ${camera.position.y}, Velocity Y: ${player.velocity.y}, Grounded: ${player.grounded}`);
+            
+            // 地面判定
+            if (camera.position.y < player.height) {
+                camera.position.y = player.height;
+                player.velocity.y = 0;
+                player.jumping = false;
+                player.grounded = true;
+                //console.log("地面に着地しました");
+            }
+            
+            // ブロックとの衝突判定
+            const playerPos = camera.position;
+            const halfWidth = player.collisionBox.width / 2;
+            const halfHeight = player.collisionBox.height / 2;
+            const halfDepth = player.collisionBox.depth / 2;
+            
+            // 地面接地判定のリセット（ブロックに乗っていない場合）
+            let onGround = playerPos.y <= player.height;
+            
+            blocks.forEach(block => {
+                const blockPos = block.position;
+                
+                // 単純なAABB衝突判定
+                if (
+                    Math.abs(playerPos.x - blockPos.x) < (0.5 + halfWidth) &&
+                    Math.abs(playerPos.y - blockPos.y) < (0.5 + halfHeight) &&
+                    Math.abs(playerPos.z - blockPos.z) < (0.5 + halfDepth)
+                ) {
+                    // 衝突方向を特定して押し戻し
+                    const overlapX = (0.5 + halfWidth) - Math.abs(playerPos.x - blockPos.x);
+                    const overlapY = (0.5 + halfHeight) - Math.abs(playerPos.y - blockPos.y);
+                    const overlapZ = (0.5 + halfDepth) - Math.abs(playerPos.z - blockPos.z);
+                    
+                    // 最小の重なりを持つ軸に沿って押し戻し
+                    if (overlapX < overlapY && overlapX < overlapZ) {
+                        playerPos.x += overlapX * (playerPos.x > blockPos.x ? 1 : -1);
+                    } else if (overlapY < overlapX && overlapY < overlapZ) {
+                        playerPos.y += overlapY * (playerPos.y > blockPos.y ? 1 : -1);
+                        
+                        // 上からの衝突なら地面に立っている
+                        if (playerPos.y > blockPos.y) {
+                            player.velocity.y = 0;
+                            player.jumping = false;
+                            player.grounded = true;
+                            onGround = true;
+                            //console.log("ブロックの上に立っています");
+                        } else {
+                            // 下からの衝突なら頭をぶつけた
+                            player.velocity.y = 0;
+                        }
+                    } else {
+                        playerPos.z += overlapZ * (playerPos.z > blockPos.z ? 1 : -1);
+                    }
+                }
+                
+                // 上に立っているかの判定（より正確に）
+                if (
+                    Math.abs(playerPos.x - blockPos.x) < (0.5 + halfWidth) &&
+                    Math.abs(playerPos.z - blockPos.z) < (0.5 + halfDepth) &&
+                    Math.abs((playerPos.y - halfHeight) - (blockPos.y + 0.5)) < 0.1 &&
+                    player.velocity.y <= 0
+                ) {
+                    player.grounded = true;
+                    onGround = true;
+                    player.velocity.y = 0;
+                    //console.log("ブロックの真上に立っています");
+                }
+            });
+            
+            // 空中にいて、どのブロックの上にも立っていない場合
+            if (!onGround && playerPos.y > player.height) {
+                player.grounded = false;
+            }
+        }
+        
+        // プレイヤー移動処理
+        function updatePlayerMovement() {
+            if (!pointerLocked) return;
+            
+            const moveSpeed = player.sprinting ? player.sprintSpeed : player.speed;
+            const direction = new THREE.Vector3();
+            const rotation = player.yaw;
+            
+            // 前後方向 (W/S)
+            if (keys.w) {
+                direction.z = Math.cos(rotation) * moveSpeed;
+                direction.x = Math.sin(rotation) * moveSpeed;
+            }
+            if (keys.s) {
+                direction.z = -Math.cos(rotation) * moveSpeed;
+                direction.x = -Math.sin(rotation) * moveSpeed;
+            }
+            
+            // 左右方向 (A/D)
+            if (keys.a) {
+                direction.z = -Math.sin(rotation) * moveSpeed;
+                direction.x = Math.cos(rotation) * moveSpeed;
+            }
+            if (keys.d) {
+                direction.z = Math.sin(rotation) * moveSpeed;
+                direction.x = -Math.cos(rotation) * moveSpeed;
+            }
+            
+            // 移動速度の正規化（斜め移動が速くなるのを防ぐ）
+            if (direction.length() > 0) {
+                direction.normalize().multiplyScalar(moveSpeed);
+                
+                // 歩行音を再生
+                if (player.grounded && Math.random() > 0.9 && sounds.walk) {
+                    sounds.walk.play();
+                }
+            }
+            
+            camera.position.x += direction.x;
+            camera.position.z += direction.z;
+        }
+        
+        // アニメーションループ
+        function animate(time) {
+            requestAnimationFrame(animate);
+            
+            // FPS更新
+            updateFPS(time);
+            
+            // プレイヤー物理演算と移動
+            updatePlayerPhysics();
+            updatePlayerMovement();
+            
+            // ブロックプレビュー更新
+            updateBlockPreview();
+            
+            // プレイヤー座標更新
+            updatePlayerCoordinates();
+            
+            // レンダリング
+            renderer.render(scene, camera);
+        }
+        
+        // カメラを初期化
+        function initCamera() {
+            // 初期視点角度を設定
+            player.yaw = 0;
+            player.pitch = 0;
+            
+            // カメラの向きを更新
+            updateCameraDirection();
+        }
+        
+        // ページロード時に初期化
+        window.addEventListener('load', () => {
+            init();
+            initCamera();
+        });
+    </script>
+</body>
+</html>
